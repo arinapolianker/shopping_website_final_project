@@ -1,0 +1,15 @@
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS item;
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS orders;
+
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    first_name VARCHAR(255) NOT NULL,
+    last_name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    phone VARCHAR(255) NOT NULL,
+    address VARCHAR(255) NOT NULL,
+    username VARCHAR(255) NOT NULL,
+    hashed_password VARCHAR(255) NOT NULL,
+);
