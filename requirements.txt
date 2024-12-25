@@ -12,7 +12,10 @@ bcrypt==4.0.1
 python-jose==3.3.0
 python-multipart==0.0.6
 streamlit==1.40.0
+jose
+requests
 numpy
 pandas
 matplotlib
 seaborn
+scikit-learn
