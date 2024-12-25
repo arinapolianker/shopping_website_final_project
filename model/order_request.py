@@ -1,20 +1,16 @@
-from datetime import date
 from typing import Optional, List, Dict
 
 from pydantic import BaseModel
 
 from model.item import Item
+from model.order import Order
 from model.order_status import OrderStatus
+from model.user import User
 
 
-class Order(BaseModel):
+class OrderRequest(BaseModel):
     id: Optional[int] = None
-    user_id: Optional[int] = None
-    order_date: date
-    shipping_address: str
+    user_id: int
+    item_id: int
     item_quantities: Dict[int, int]
-    total_price: float
     status: OrderStatus
-
-
-
