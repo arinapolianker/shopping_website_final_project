@@ -28,11 +28,13 @@ CREATE TABLE orders (
     user_id INT NOT NULL,
     order_date DATE NOT NULL,
     shipping_address TEXT NOT NULL,
+    item_id INT NOT NULL,
     item_quantities JSON NOT NULL,
     total_price DECIMAL(10,2) NOT NULL,
     status ENUM('TEMP', 'CLOSE') NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-);
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (item_id) REFERENCES item(id)
+    );
 
 CREATE TABLE favorite_items (
     id INT AUTO_INCREMENT PRIMARY KEY,

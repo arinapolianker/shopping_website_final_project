@@ -64,6 +64,12 @@ async def delete_by_id(favorite_item_id: int):
     await favorite_item_service.delete_by_id(favorite_item_id)
 
 
+<<<<<<< HEAD
 @router.delete("/{user_id}/item/{item_id}")
 async def delete_by_user_and_item_id(user_id: int, item_id: int):
     await favorite_item_service.delete_by_user_and_item_id(user_id, item_id)
+=======
+@router.delete("/item/{item_id}")
+async def delete_favorite_items_by_item_id(item_id: int):
+    await favorite_item_service.delete_favorite_items_by_item_id(item_id)
+>>>>>>> origin/main
