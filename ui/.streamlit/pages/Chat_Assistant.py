@@ -1,8 +1,5 @@
-import openai
 import streamlit as st
 from openai import OpenAI
-
-# REMOVED = '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'
 
 get_all_items = st.session_state.functions['get_all_items']
 
@@ -21,9 +18,9 @@ st.write("Welcome to the Chat Assistant page! Ask questions about the items in o
 
 
 with st.sidebar:
-    if "REMOVED" not in st.session_state or not st.session_state.REMOVED:
-        st.session_state.REMOVED = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
-        if st.session_state.REMOVED:
+    if "openai_api_key" not in st.session_state or not st.session_state.openai_api_key:
+        st.session_state.openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
+        if st.session_state.openai_api_key:
             st.success("API key saved!")
     else:
         st.text("Using saved OpenAI API Key")
@@ -41,7 +38,7 @@ for msg in st.session_state.messages:
     st.chat_message(msg["role"]).write(msg["content"])
 
 if st.session_state["prompt_count"] < 5 and (prompt := st.chat_input()):
-    if "REMOVED" not in st.session_state or not st.session_state.REMOVED:
+    if "openai_api_key" not in st.session_state or not st.session_state.openai_api_key:
         st.info("Please add your OpenAI API key to continue.")
         st.stop()
 
@@ -60,7 +57,7 @@ if st.session_state["prompt_count"] < 5 and (prompt := st.chat_input()):
     )
     context_messages = st.session_state.messages + [{"role": "system", "content": store_context}]
 
-    client = OpenAI(api_key=st.session_state.REMOVED)
+    client = OpenAI(api_key=st.session_state.openai_api_key)
     response = client.chat.completions.create(model="gpt-3.5-turbo", messages=context_messages)
 
     # response = openai.ChatCompletion.create(
