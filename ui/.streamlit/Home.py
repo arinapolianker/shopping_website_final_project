@@ -2,7 +2,8 @@ import streamlit as st
 
 from api.api import get_all_items, register_user, get_jwt_token, add_item_to_favorite_items, get_favorite_items, \
     get_favorite_items_by_user_id, delete_favorite_item, create_order, get_order_by_user_id, close_order, \
-    delete_item_from_order, get_temp_order
+    delete_item_from_order, get_temp_order, update_temp_order_quantities, get_order_by_order_and_user_id, \
+    fetch_filtered_items
 
 if 'functions' not in st.session_state:
     st.session_state.functions = {
@@ -14,8 +15,10 @@ if 'functions' not in st.session_state:
         'get_favorite_items_by_user_id': get_favorite_items_by_user_id,
         'delete_favorite_item': delete_favorite_item,
         'create_order': create_order,
+        'update_temp_order_quantities': update_temp_order_quantities,
         'get_order_by_user_id': get_order_by_user_id,
         'get_temp_order': get_temp_order,
+        'get_order_by_order_and_user_id': get_order_by_order_and_user_id,
         'close_order': close_order,
         'delete_item_from_order': delete_item_from_order
     }
@@ -30,9 +33,23 @@ if 'order_quantities' not in st.session_state:
 # if 'current_order_id' not in st.session_state:
 #     st.session_state.current_order_id = None
 
+# page_names = {
+#     "Chat_Assistant.py": "Chat Assistant",
+#     "Favorites.py": "Favorites",
+#     "orders.py": "Orders",
+#     "Account.py": "Account",  # Includes login, logout, and registration
+#     "Home.py": "Home"
+# }
+#
+# selected_page = st.sidebar.radio("Navigate", list(page_names.values()))
+# for file, name in page_names.items():
+#     if name == selected_page:
+#         page_module = import_module(f"pages.{file.replace('.py', '')}")
+#         page_module.run()  # Each page script should have a `run()` function
+#         break
 
 st.set_page_config(
-    page_title="Speakers Web-Shop🎧",
+    page_title="Speakers Web-Shop",
     page_icon="🎧",
     layout="wide",
 )
@@ -77,24 +94,41 @@ st.title("Welcome to the Speakers Web-Shop!")
 #     unsafe_allow_html=True,
 # )
 # Streamlit headline
-st.title("Speakers Web-Shop")
-st.header("All Items in Stock")
 
-# Fetch all items from the database
 try:
     items = get_all_items()
 except Exception as e:
     st.error(f"Error fetching items: {e}")
     items = []
 
-if items:
-    row1 = st.columns(4)
-    row2 = st.columns(4)
+# st.header("Search and Filter Items")
+search_by_name = st.text_input("Search by Name (use commas for multiple words)")
+price_filter = st.slider("Filter by Price", 0, 500, (0, 500))  # Range slider
+stock_filter = st.slider("Filter by Stock", 0, 100, (0, 100))  # Range slider
 
-    grid = [col.container(height=200) for col in row1 + row2]
+name_keywords = [keyword.strip().lower() for keyword in search_by_name.split(",") if keyword.strip()]
+filtered_items = [
+    item for item in items
+    if (not name_keywords or any(keyword in item["name"].lower() for keyword in name_keywords))
+    and price_filter[0] <= item["price"] <= price_filter[1]
+    and stock_filter[0] <= item["item_stock"] <= stock_filter[1]
+]
 
-    for i, item in enumerate(items[:len(grid)]):
-        with grid[i]:
+if filtered_items:
+    st.markdown("### Available Items")
+    # row1 = st.columns(4)
+    # row2 = st.columns(4)
+    # rows = []
+    #
+    # grid = [col.container(height=200) for col in row1 + row2]
+    num_columns = 4
+    rows = [st.columns(num_columns) for _ in range((len(items) + num_columns - 1) // num_columns)]
+
+    for i, item in enumerate(filtered_items):
+        row_idx = i // num_columns
+        col_idx = i % num_columns
+        # for i, item in enumerate(items[:len(grid)]):
+        with rows[row_idx][col_idx]:
             st.markdown(f"**{item['name']}**")
             st.markdown(f"*Price: ${item['price']}*")
             st.markdown(f"Item Stock: {item['item_stock']}")
@@ -104,36 +138,24 @@ if items:
                 if st.button("Add to order", key=f"order_{i}"):
                     if 'jwt_token' in st.session_state and st.session_state['jwt_token']:
                         user_id = st.session_state.get("user_id")
-                        try:
-                            temp_order_response = get_temp_order(user_id)
-                            if temp_order_response.get("success"):
-                                temp_order = temp_order_response.get("data")
-                                order_id = temp_order["id"]
-
-                                st.session_state.current_order_id = order_id
-                                if 'order_quantities' not in st.session_state:
-                                    st.session_state.order_quantities = {}
-                                order_quantities = st.session_state.order_quantities
-                                if item["id"] in st.session_state.order_quantities:
-                                    st.session_state.order_quantities[item["id"]] += 1
-                                else:
-                                    st.session_state.order_quantities[item["id"]] = 1
-                                add_order_response = add_item_to_order(user_id, item["id"], 1)
-                                st.success(f"'{item['name']}' Added to your existing order!")
-
-                            else:
-                                shipping_address = st.session_state.get("user_address", "Default Address")
-                                item_quantities = {item["id"]: 1}
-                                item_price = item["price"]
-                                total_price = item_price * item_quantities[item["id"]]
-                                new_order = create_order(user_id, shipping_address, item_quantities, total_price, 'TEMP')
-
-                                st.session_state.current_order_id = new_order["id"]
-                                st.session_state.order_quantities = item_quantities
+                        temp_order = get_temp_order(user_id)
+                        if not temp_order:
+                            shipping_address = st.session_state.get("user_address", "Default Address")
+                            item_quantities = {item["id"]: 1}
+                            item_price = item["price"]
+                            total_price = item_price * item_quantities[item["id"]]
+                            create_order(user_id, shipping_address, item_quantities, total_price, 'TEMP')
+                            st.session_state.order_quantities = item_quantities
                             st.success(f"{item['name']} added to your order!")
 
-                        except Exception as e:
-                            st.error(f"Error processing order: {e}")
+                        else:
+                            item_quantities = temp_order.get("item_quantities", {})
+                            item_id_str = str(item['id'])
+                            current_quantity = item_quantities.get(item_id_str, 0)
+                            new_quantity = current_quantity + 1
+                            update_temp_order_quantities(user_id, item['id'], new_quantity)
+                            st.session_state.order_quantities[item['id']] = new_quantity
+                            st.success(f"'{item['name']}' Added to your existing order!")
                     else:
                         st.warning("Please log in to add items to your order.")
 
@@ -151,30 +173,5 @@ if items:
                             st.session_state["favorite_items_updated"] = True
                     else:
                         st.warning("Please log in to add items to your favorite list.")
-
-
-#     num_columns = 3  # Number of columns in the grid
-#     for row in range(0, len(items), num_columns):
-#         row_items = items[row: row + num_columns]
-#         cols = st.columns(num_columns)
-#
-#         for listing, item in enumerate(row_items):
-#             with cols[listing]:
-#                 st.markdown(
-#                     f"""
-#                     <div class="item-frame">
-#                         <h3>{item['name']}</h3>
-#                         <p><b>Price:</b> ${item['price']:.2f}</p>
-#                         <p><b>Stock:</b> {item['item_stock']}</p>
-#                         <button style="background-color: #007BFF; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer;">
-#                             Add to Cart
-#                         </button>
-#                     </div>
-#                     """,
-#                     unsafe_allow_html=True,
-#                 )
-# else:
-#     st.info("No items found in the database.")
-#
-# # Close the page frame div
-# st.markdown("</div>", unsafe_allow_html=True)
+else:
+    st.warning("No items available.")

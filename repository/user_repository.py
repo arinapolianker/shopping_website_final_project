@@ -56,6 +56,7 @@ async def create_user(user: UserRequest, hashed_password: str):
     user_dict["is_logged"] = True
     cache_repository.create_cache_entity(str(user.username), json.dumps(user_dict))
     await database.execute(query, values)
+    await database.commit()
 
 
 async def update_user_by_id(user_id: int, user: UserRequest, hashed_password: Optional[str] = None):

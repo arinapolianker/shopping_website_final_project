@@ -7,6 +7,7 @@ from model.order_status import OrderStatus
 
 
 class OrderResponse(BaseModel):
+    id: int
     item: Item
     item_quantities: Dict[int, int]
     total_price: float

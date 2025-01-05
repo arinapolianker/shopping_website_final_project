@@ -67,48 +67,111 @@ async def get_order_by_user_id(user_id: int) -> List[OrderResponse]:
         return response
 
 
-async def get_temp_order_by_user_id(user_id: int) -> Optional[Order]:
-    user = await user_repository.get_user_by_id(user_id)
-    if not user:
-        raise ValueError(f"User with ID {user_id} not found.")
+async def get_order_by_order_and_user_id(order_id: int, user_id: int) -> Optional[Dict]:
+    order = await order_repository.get_order_by_order_and_user_id(order_id, user_id)
+    if not order:
+        return None
 
-    open_order = await order_repository.get_temp_order_by_user_id(user_id)
-    if open_order:
-        return Order(**open_order)
+    items_list = []
+    total_price = 0
 
-    new_order = Order(
-        user_id=user_id,
-        order_date=date.today(),
-        shipping_address=user.address,
-        item_quantities={},
-        total_price=0.0,
-        status=OrderStatus.TEMP
-    )
-    order_id = await order_repository.create_order(new_order)
-    new_order.id = order_id
-    return new_order
+    for item_id, quantity in order["item_quantities"].items():
+        item_details = await item_service.get_item_by_id(item_id)
+        if not item_details:
+            raise ValueError(f"Item with ID {item_id} not found")
+        items_list.append({
+            "id": item_details.id,
+            "name": item_details.name,
+            "price": item_details.price,
+            "item_stock": item_details.item_stock,
+            "quantity": quantity
+        })
+        total_price += item_details.price * quantity
+
+    order_response = {
+        "id": order.get("id"),
+        "item": items_list,
+        "item_quantities": order["item_quantities"],
+        "total_price": total_price,
+        "shipping_address": order["shipping_address"],
+        "status": order["status"]
+    }
+    return order_response
+
+
+async def get_temp_order_by_user_id(user_id: int) -> Optional[Dict]:
+    user_order = await order_repository.get_temp_order_by_user_id(user_id)
+    if not user_order:
+        return None
+
+    items_list = []
+    total_price = 0
+    item_quantities = user_order["item_quantities"]
+
+    for item_id, quantity in item_quantities.items():
+        item_details = await item_service.get_item_by_id(item_id)
+        if not item_details:
+            raise ValueError(f"Item with ID {item_id} not found")
+        items_list.append({
+            "id": item_details.id,
+            "name": item_details.name,
+            "price": item_details.price,
+            "item_stock": item_details.item_stock,
+            "quantity": quantity
+        })
+        total_price += item_details.price * quantity
+
+    order_response = {
+        "id": user_order.get("id"),
+        "item": items_list,
+        "item_quantities": item_quantities,
+        "total_price": total_price,
+        "shipping_address": user_order["shipping_address"],
+        "status": user_order["status"]
+    }
+    return order_response
 
 
 async def update_temp_order(user_id: int, item_id: int, quantity: int):
     temp_order = await order_repository.get_temp_order_by_user_id(user_id)
+    print(f"temp_order: {temp_order}")
     if not temp_order:
-        raise ValueError("Order not found")
+        raise ValueError("TEMP Order not found")
 
-    item_quantities = json.loads(temp_order["item_quantities"]) if temp_order["item_quantities"] else {}
-    if item_id in item_quantities:
-        item_quantities[item_id] += quantity
+    item_quantities = {str(k): v for k, v in temp_order["item_quantities"].items()}
+    # item_quantities = temp_order["item_quantities"]
+    print(f"item_quantities before update: {item_quantities}")
+
+    if quantity == 0:
+        if str(item_id) in item_quantities:
+            del item_quantities[str(item_id)]
+        else:
+            raise ValueError(f"Item ID {item_id} not found in the order")
     else:
-        item_quantities[item_id] = quantity
+        item_quantities[str(item_id)] = quantity
+    # if quantity == 0:
+    #     if str(item_id) in item_quantities.items():
+    #         await delete_item_from_order(temp_order["id"], item_id)
+    #     else:
+    #         raise ValueError(f"Item ID {item_id} not found in the order")
+    # else:
+    #     if item_id in item_quantities:
+    #         item_quantities[item_id] += quantity
+    #     else:
+    #         item_quantities[item_id] = quantity
+    print(f"item_quantities after update: {item_quantities}")
 
     total_price = await compute_total_price(item_quantities)
-    await order_repository.update_temp_order(temp_order["id"], item_quantities, total_price)
+    print(f"Updating database with: item_quantities={item_quantities}, total_price={total_price}")
+
+    await order_repository.update_temp_order(temp_order.get("id"), item_quantities, total_price)
 
 
 async def get_all_orders() -> List[Order]:
     return await order_repository.get_all_orders()
 
 
-async def create_order(order_request: OrderRequest) -> Optional[int]:
+async def create_order(order_request: OrderRequest) -> None:
     try:
         user = await user_repository.get_user_by_id(order_request.user_id)
         if not user:
@@ -134,9 +197,7 @@ async def create_order(order_request: OrderRequest) -> Optional[int]:
             status=order_request.status
         )
 
-        order_id = await order_repository.create_order(order)
-        if not order_id:
-            raise ValueError("Failed to create the order.")
+        await order_repository.create_order(order)
 
     except Exception as e:
         raise ValueError(f"Failed to create order: {e}")
@@ -149,7 +210,7 @@ async def update_order(order_id: int, order_request: OrderRequest):
         raise ValueError("User does not exist or is not logged in.")
 
     order = await order_repository.get_order_by_id(order_id)
-    if not order.id:
+    if not order:
         raise Exception(f"Can't update order. Order id '{order.id}' not found.")
 
     if order.status != OrderStatus.CLOSE and order_request.status != OrderStatus.CLOSE:
@@ -171,16 +232,16 @@ async def update_order(order_id: int, order_request: OrderRequest):
         await order_repository.update_order(order_id, updated_order)
 
 
-async def update_order_status(order_id: int, status: OrderStatus):
-    order = await order_repository.get_order_by_id(order_id)
-    if not order:
-        raise ValueError(f"Order with ID {order_id} not found")
+async def update_order_status(order_id: int, user_id: int, shipping_address: str, status: OrderStatus):
+    temp_order = await get_temp_order_by_user_id(user_id)
+    if not temp_order:
+        raise ValueError(f"Open order with ID {user_id} not found")
 
     if status == OrderStatus.CLOSE:
         under_stock_item = []
         updated_items = []
 
-        for item_id, quantity in order.item_quantities.items():
+        for item_id, quantity in temp_order["item_quantities"].items():
             item_data = await item_repository.get_item_by_id(item_id)
             if not item_data:
                 raise ValueError(f"Item with ID {item_id} not found")
@@ -192,8 +253,8 @@ async def update_order_status(order_id: int, status: OrderStatus):
                 )
             else:
                 new_stock = item_data.item_stock - quantity
-                if new_stock < 0:
-                    raise ValueError(f"Insufficient stock for item '{item_data.name}'")
+                # if new_stock < 0:
+                #     raise ValueError(f"Insufficient stock for item '{item_data.name}'")
                 updated_items.append(
                     Item(
                         id=item_data.id,
@@ -208,7 +269,7 @@ async def update_order_status(order_id: int, status: OrderStatus):
         for updated_item in updated_items:
             await item_repository.update_item(updated_item.id, updated_item)
 
-        await order_repository.update_order_status(order_id, status)
+        await order_repository.update_order_status(order_id, shipping_address, status)
 
 
 async def delete_order_by_id(order_id: int):
@@ -227,7 +288,7 @@ async def delete_item_from_order(order_id: int, item_id: int):
     updated_item_quantities = {
         key: value for key, value in order.item_quantities.items() if key != item_id
     }
-
+    print(f"updated_item_quantities before: {updated_item_quantities}")
     if len(updated_item_quantities) == len(order.item_quantities):
         raise Exception(f"Item with ID {item_id} does not exist in the order")
 

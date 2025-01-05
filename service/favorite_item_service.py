@@ -50,5 +50,5 @@ async def delete_by_id(favorite_item_id: int):
     await favorite_item_repository.delete_by_id(favorite_item_id)
 
 
-async def delete_favorite_items_by_item_id(item_id: int):
-    await favorite_item_repository.delete_favorite_items_by_item_id(item_id)
+async def delete_by_user_and_item_id(user_id: int, item_id: int):
+    await favorite_item_repository.delete_by_user_and_item_id(user_id, item_id)

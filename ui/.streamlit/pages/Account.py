@@ -18,7 +18,7 @@ if 'show_login_form' not in st.session_state:
     st.session_state['show_login_form'] = False
 
 st.set_page_config(
-    page_title="Register 📝",  # Sets the browser tab title
+    page_title="Account",  # Sets the browser tab title
     page_icon="📝",  # Optional: Add a notepad emoji as an icon
     layout="centered",  # Optional: Choose centered layout for forms
     menu_items={
@@ -50,7 +50,9 @@ with col1:
             register_response = register_user(first_name, last_name, email, phone, address, username, password)
 
             if register_response.status_code == 201:
-
+                st.success("Registered successfully!")
+                time.sleep(2)
+                # st.rerun()
                 jwt_token, user_id = get_jwt_token(username, password)
 
                 if jwt_token:
@@ -58,7 +60,7 @@ with col1:
                     st.session_state['user_id'] = user_id
                     st.success("Registered successfully!")
                     time.sleep(2)
-                    st.switch_page("Main.py")
+                    st.switch_page("Home.py")
                 else:
                     st.error("Registration succeeded but login failed. Please try logging in manually.")
             else:
@@ -79,7 +81,7 @@ with col2:
                 st.session_state['user_id'] = user_id
                 st.success("Logged in successfully!")
                 time.sleep(2)
-                st.switch_page("Main.py")
+                st.switch_page("Home.py")
             else:
                 st.error("Login failed. Check your credentials.")
 with col3:

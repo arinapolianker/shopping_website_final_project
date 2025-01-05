@@ -30,6 +30,19 @@ async def get_order_by_user_id(user_id: int) -> List[Order]:
     return orders
 
 
+async def get_order_by_order_and_user_id(order_id: int, user_id: int) -> Optional[Dict]:
+    query = f"""
+            SELECT * FROM {TABLE_NAME}
+            WHERE id = :order_id AND user_id = :user_id
+        """
+    result = await database.fetch_one(query, values={"order_id": order_id, "user_id": user_id})
+    if result:
+        result_dict = dict(result)
+        result_dict["item_quantities"] = json.loads(result_dict["item_quantities"])
+        return result_dict
+    return None
+
+
 async def get_temp_order_by_user_id(user_id: int) -> Optional[Dict]:
     query = f"""
             SELECT * FROM {TABLE_NAME}
@@ -37,7 +50,11 @@ async def get_temp_order_by_user_id(user_id: int) -> Optional[Dict]:
             ORDER BY order_date DESC LIMIT 1
         """
     result = await database.fetch_one(query, values={"user_id": user_id})
-    return dict(result) if result else None
+    if result:
+        result_dict = dict(result)
+        result_dict["item_quantities"] = json.loads(result_dict["item_quantities"])
+        return result_dict
+    return None
 
 
 async def update_temp_order(order_id: int, item_quantities: dict, total_price: float):
@@ -51,6 +68,7 @@ async def update_temp_order(order_id: int, item_quantities: dict, total_price: f
         "total_price": total_price,
         "order_id": order_id
     }
+    print(f"Executing query: {query} with values: {values}")
     await database.execute(query, values)
 
 
@@ -101,15 +119,21 @@ async def update_order(order_id: int, order: Order):
         "status": order.status
     }
     await database.execute(query, values)
+    await database.commit()
 
 
-async def update_order_status(order_id: int, status: OrderStatus):
+async def update_order_status(order_id: int, shipping_address: str, status: OrderStatus):
     query = f"""
         UPDATE {TABLE_NAME}
-        SET status = :status
+        SET shipping_address = :shipping_address, status = :status
         WHERE id = :order_id
     """
-    await database.execute(query, {"status": status.value, "order_id": order_id})
+    values = {
+        "order_id": order_id,
+        "shipping_address": shipping_address,
+        "status": status.value,
+    }
+    await database.execute(query, values)
 
 
 async def delete_order_by_id(order_id: int):

@@ -1,0 +1,15 @@
+[theme]
+base = "light"
+primaryColor = "#0032ad"
+secondaryBackgroundColor = "#dfebfd"
+font = "sans serif"
+
+#[theme]
+#primaryColor = "green"
+#backgroundColor = "white"
+#secondaryBackgroundColor = "lightgray"
+#textColor = "black"
+#font = "sans serif"
+#
+#[theme]
+#primaryColor = "blue"
