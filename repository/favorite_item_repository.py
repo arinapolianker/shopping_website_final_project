@@ -1,7 +1,6 @@
 from typing import Optional, List
 
 from model.favorite_item import FavoriteItem
-from model.favorite_item_response import FavoriteItemResponse
 from repository.database import database
 
 TABLE_NAME = "favorite_items"
@@ -72,14 +71,13 @@ async def delete_by_id(favorite_item_id: int):
     await database.execute(query, values={"favorite_item_id": favorite_item_id})
 
 
-<<<<<<< HEAD
 async def delete_by_user_and_item_id(user_id: int, item_id: int):
     query = f"DELETE FROM {TABLE_NAME} WHERE user_id=:user_id AND item_id=:item_id"
     await database.execute(query, values={"user_id": user_id, "item_id": item_id})
-=======
+
+
 async def delete_favorite_items_by_item_id(item_id: int):
     query = f"DELETE FROM {TABLE_NAME} WHERE item_id=:item_id"
     await database.execute(query, values={"item_id": item_id})
->>>>>>> origin/main
 
 

@@ -1,3 +1,4 @@
+import openai
 import streamlit as st
 from openai import OpenAI
 
@@ -17,6 +18,21 @@ st.title("💬 Chatbot")
 st.write("Welcome to the Chat Assistant page! Ask questions about the items in our store.")
 
 
+def check_openai_api_key(api_key):
+    client_exists = OpenAI(api_key=api_key)
+    try:
+        client_exists.models.list()
+    except openai.AuthenticationError:
+        return False
+    else:
+        return True
+
+
+if check_openai_api_key(OPENAI_API_KEY):
+    print("Valid OpenAI API key.")
+else:
+    print("Invalid OpenAI API key.")
+
 with st.sidebar:
     if "openai_api_key" not in st.session_state or not st.session_state.openai_api_key:
         st.session_state.openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
@@ -26,6 +42,11 @@ with st.sidebar:
         st.text("Using saved OpenAI API Key")
         st.write("✔️ Your API key is already set.")
     "[Get an OpenAI API key](https://platform.openai.com/account/api-keys)"
+    print(f"API Key in session state: {st.session_state.openai_api_key}")
+
+    if st.button("Reset API Key"):
+        del st.session_state["openai_api_key"]
+
 
 if "messages" not in st.session_state:
     st.session_state["messages"] = [{"role": "assistant", "content": "Hello! How can I help you?"}]
@@ -39,6 +60,7 @@ for msg in st.session_state.messages:
 
 if st.session_state["prompt_count"] < 5 and (prompt := st.chat_input()):
     if "openai_api_key" not in st.session_state or not st.session_state.openai_api_key:
+        print(f"Using API key: {st.session_state.openai_api_key}")
         st.info("Please add your OpenAI API key to continue.")
         st.stop()
 

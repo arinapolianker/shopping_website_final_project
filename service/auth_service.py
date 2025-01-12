@@ -11,6 +11,7 @@ config = Config()
 
 async def authenticate_user(username: str, password: str):
     user = await user_service.get_user_by_username(username)
+    print("User retrieved:", user)
     if not user or not user_service.verify_password(password, user.hashed_password):
         return False
     return user

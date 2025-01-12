@@ -42,7 +42,7 @@ async def update_item(item_id: int, item: Item):
     return await item_service.get_item_by_id(item_id)
 
 
-@router.delete("/{item_id}", response_model=Item)
+@router.delete("/{item_id}")
 async def delete_item(item_id: int):
     item_exist = await item_service.get_item_by_id(item_id)
     if not item_exist:

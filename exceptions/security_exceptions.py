@@ -11,6 +11,10 @@ def token_exception() -> HTTPException:
 
 
 def username_taken_exception() -> HTTPException:
+    """
+
+    :rtype: object
+    """
     username_taken_exception_response = HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
         detail="Username taken - select a different username"

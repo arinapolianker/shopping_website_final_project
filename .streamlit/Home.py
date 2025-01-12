@@ -1,14 +1,16 @@
 import streamlit as st
 
 from api.api import get_all_items, register_user, get_jwt_token, add_item_to_favorite_items, get_favorite_items, \
-    get_favorite_items_by_user_id, delete_favorite_item, create_order, get_order_by_user_id, close_order, \
+    get_favorite_items_by_user_id, delete_favorite_item, create_order, close_order, \
     delete_item_from_order, get_temp_order, update_temp_order_quantities, get_order_by_order_and_user_id, \
-    fetch_filtered_items
+    get_user, get_order_by_id
 
 if 'functions' not in st.session_state:
     st.session_state.functions = {
         'register_user': register_user,
         'get_jwt_token': get_jwt_token,
+        'get_user': get_user,
+        # 'delete_user': delete_user_by_id,
         'get_all_items': get_all_items,
         'add_item_to_favorite_items': add_item_to_favorite_items,
         'get_favorite_items': get_favorite_items,
@@ -16,7 +18,7 @@ if 'functions' not in st.session_state:
         'delete_favorite_item': delete_favorite_item,
         'create_order': create_order,
         'update_temp_order_quantities': update_temp_order_quantities,
-        'get_order_by_user_id': get_order_by_user_id,
+        'get_order_by_id': get_order_by_id,
         'get_temp_order': get_temp_order,
         'get_order_by_order_and_user_id': get_order_by_order_and_user_id,
         'close_order': close_order,
@@ -27,26 +29,9 @@ if 'jwt_token' not in st.session_state:
     st.session_state.jwt_token = None
 if 'user_id' not in st.session_state:
     st.session_state.user_id = None
-
 if 'order_quantities' not in st.session_state:
     st.session_state.order_quantities = {}
-# if 'current_order_id' not in st.session_state:
-#     st.session_state.current_order_id = None
 
-# page_names = {
-#     "Chat_Assistant.py": "Chat Assistant",
-#     "Favorites.py": "Favorites",
-#     "orders.py": "Orders",
-#     "Account.py": "Account",  # Includes login, logout, and registration
-#     "Home.py": "Home"
-# }
-#
-# selected_page = st.sidebar.radio("Navigate", list(page_names.values()))
-# for file, name in page_names.items():
-#     if name == selected_page:
-#         page_module = import_module(f"pages.{file.replace('.py', '')}")
-#         page_module.run()  # Each page script should have a `run()` function
-#         break
 
 st.set_page_config(
     page_title="Speakers Web-Shop",
@@ -139,23 +124,27 @@ if filtered_items:
                     if 'jwt_token' in st.session_state and st.session_state['jwt_token']:
                         user_id = st.session_state.get("user_id")
                         temp_order = get_temp_order(user_id)
+                        print(temp_order)
                         if not temp_order:
                             shipping_address = st.session_state.get("user_address", "Default Address")
                             item_quantities = {item["id"]: 1}
-                            item_price = item["price"]
-                            total_price = item_price * item_quantities[item["id"]]
-                            create_order(user_id, shipping_address, item_quantities, total_price, 'TEMP')
+                            create_order(user_id, shipping_address, item_quantities, 'TEMP')
                             st.session_state.order_quantities = item_quantities
                             st.success(f"{item['name']} added to your order!")
 
                         else:
-                            item_quantities = temp_order.get("item_quantities", {})
-                            item_id_str = str(item['id'])
-                            current_quantity = item_quantities.get(item_id_str, 0)
-                            new_quantity = current_quantity + 1
-                            update_temp_order_quantities(user_id, item['id'], new_quantity)
-                            st.session_state.order_quantities[item['id']] = new_quantity
-                            st.success(f"'{item['name']}' Added to your existing order!")
+                            existing_item = {order_item["item_id"] for order_item in temp_order["item"]}
+                            item_id = item["id"]
+                            if item_id in existing_item:
+                                item_quantities = {order_item["item_id"]: order_item["quantity"] for order_item in temp_order["item"]}
+                                current_quantity = item_quantities.get(item_id, 0)
+                                new_quantity = current_quantity + 1
+                                update_temp_order_quantities(user_id, item_id, new_quantity)
+                            # st.session_state.order_quantities[item['id']] = new_quantity
+                                st.success(f"'{item['name']}' quantity updated in your order!")
+                            else:
+                                update_temp_order_quantities(user_id, item_id, 1)
+                                st.success(f"'{item['name']}' added to your order!")
                     else:
                         st.warning("Please log in to add items to your order.")
 
@@ -168,7 +157,7 @@ if filtered_items:
                         if any(favorite_item['item']['id'] == item['id'] for favorite_item in favorite_items):
                             st.error(f"You already added '{item['name']}' to your favorite item list")
                         else:
-                            response = add_item_to_favorite_items(user_id, item['id'])
+                            add_item_to_favorite_items(user_id, item['id'])
                             st.success(f"{item['name']} was Added to favorite items!")
                             st.session_state["favorite_items_updated"] = True
                     else:

@@ -52,11 +52,14 @@ async def create_user(user: UserRequest, hashed_password: str):
     user_dict = user.dict()
     del user_dict["password"]
     values = {**user_dict, "hashed_password": hashed_password, "is_logged": True}
+    await database.execute(query, values)
+
+    user_id_query = f"SELECT id FROM {USER_TABLE_NAME} WHERE username=:username"
+    user_id = await database.fetch_one(user_id_query, values={"username": user.username})
     user_dict["hashed_password"] = hashed_password
     user_dict["is_logged"] = True
+    user_dict["id"] = user_id["id"]
     cache_repository.create_cache_entity(str(user.username), json.dumps(user_dict))
-    await database.execute(query, values)
-    await database.commit()
 
 
 async def update_user_by_id(user_id: int, user: UserRequest, hashed_password: Optional[str] = None):
@@ -133,7 +136,6 @@ async def delete_user_by_id(user_id: int):
 
 async def delete_user_by_username(username: str):
     cache_repository.remove_cache_entity(str(username))
-
     query = f"DELETE FROM {USER_TABLE_NAME} WHERE username=:username"
     await database.execute(query, values={"username": username})
 

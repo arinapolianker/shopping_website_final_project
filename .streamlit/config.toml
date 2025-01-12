@@ -2,7 +2,7 @@
 base = "light"
 primaryColor = "#0032ad"
 secondaryBackgroundColor = "#dfebfd"
-font = "sans serif"
+#font = "sans serif"
 
 #[theme]
 #primaryColor = "green"

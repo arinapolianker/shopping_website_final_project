@@ -20,48 +20,6 @@ def register_user(first_name, last_name, email, phone, address, username, passwo
     print(response)
     return response
 
-    # response = requests.post(url, json=payload)
-    # response.raise_for_status()
-    # response_data = response.json()
-    # jwt_token = response_data.get("jwt_token")
-    # user_id = response_data.get("user_id")
-    # return jwt_token, user_id
-    # try:
-    #     response = requests.post(url, json=payload)
-    #     if response.status_code == 201:
-    #         return response.json()  # Expecting a JSON response on success
-    #     elif response.status_code == 400:
-    #         print("Validation error:", response.text)
-    #         return None
-    #     else:
-    #         print("Unexpected status code:", response.status_code)
-    #         return None
-    # except Exception as e:
-    #     print(f"Error during registration: {e}")
-    #     return None
-
-
-# def get_jwt_token(username, password):
-#     url = f"{BASE_URL}/auth/token"
-#     form_data = {
-#         "username": username,
-#         "password": password
-#     }
-#     try:
-#         response = requests.post(url, data=form_data)
-#         response.raise_for_status()  # Raise an exception for HTTP errors
-#         if response.headers.get('Content-Type') == 'application/json':
-#             response_data = response.json()
-#             jwt_token = response_data.get("jwt_token")
-#             user_id = response_data.get("user_id")
-#             return jwt_token, user_id
-#         else:
-#             print(f"Unexpected response content type: {response.text}")
-#             return None, None
-#     except requests.exceptions.RequestException as e:
-#         print(f"Error during login: {e}")
-#         return None, None
-
 
 def get_jwt_token(username, password):
     url = f"{BASE_URL}/auth/token"
@@ -69,7 +27,9 @@ def get_jwt_token(username, password):
         "username": username,
         "password": password
     }
+    # print("form_data sent to /auth/token:", form_data)
     response = requests.post(url, data=form_data)
+    # print("Login Response:", response.status_code, response.text)
     if response.status_code == 401:
         return None, None
     else:
@@ -123,12 +83,24 @@ def get_all_users(token):
     return response.json()
 
 
-# @st.cache_resource(ttl=10)
-# def get_user(token):
-#     url = f"{BASE_URL}/user/"
-#     headers = {"Authorization": f"Bearer {token}"}
-#     response = requests.get(url, headers=headers)
+# @st.cache_resource(ttl=60)
+# def get_user(user_id):
+#     url = f"{BASE_URL}/user/{user_id}"
+#     response = requests.get(url)
 #     return response.json()
+
+@st.cache_resource(ttl=60)
+def get_user(user_id, token):
+    url = f"{BASE_URL}/user/{user_id}"
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(url, headers=headers)
+    return response.json()
+
+
+# def delete_user_by_id(user_id):
+#     url = f"{BASE_URL}/user/{user_id}"
+#     response = requests.delete(url)
+#     response.raise_for_status()
 
 
 @st.cache_resource(ttl=10)
@@ -141,22 +113,19 @@ def get_all_items():
 def add_item_to_favorite_items(user_id, item_id):
     url = f"{BASE_URL}/favorite_item/"
     payload = {"user_id": user_id, "item_id": item_id}
-    print(f"Payload being sent: {payload}")
-    try:
-        response = requests.post(url, json=payload)
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.HTTPError as http_err:
-        return {"error": f"HTTP error occurred: {http_err}"}
-    except Exception as err:
-        return {"error": f"An error occurred: {err}"}
+    response = requests.post(url, json=payload)
+    response.raise_for_status()
+    return response.json()
+    # except requests.exceptions.HTTPError as http_err:
+    #     return {"error": f"HTTP error occurred: {http_err}"}
+    # except Exception as err:
+    #     return {"error": f"An error occurred: {err}"}
 
 
-@st.cache_resource(ttl=10)
+# @st.cache_resource(ttl=10)
 def get_favorite_items_by_user_id(user_id):
     url = f"{BASE_URL}/favorite_item/user/{user_id}"
     response = requests.get(url)
-    # print(response.json())
     return response.json()
 
 
@@ -164,6 +133,7 @@ def get_favorite_items_by_user_id(user_id):
 def get_favorite_items():
     url = f"{BASE_URL}/favorite_item/"
     response = requests.get(url)
+    response.raise_for_status()
     return response.json()
 
 
@@ -182,39 +152,25 @@ def create_order(user_id, shipping_address, item_quantities, total_price, status
         "total_price": total_price,
         "status": status
     }
-    # print(f"Payload being sent: {payload}")
     response = requests.post(url, json=payload)
     response.raise_for_status()
     return response.json()
 
 
 def update_temp_order_quantities(user_id, item_id, quantity):
-    url = f"{BASE_URL}/order/update_order"
+    url = f"{BASE_URL}/order//update_order_quantities"
     payload = {
         "user_id": user_id,
         "item_id": item_id,
         "quantity": quantity
     }
-    # print(f"payload being sent: {payload}")
     response = requests.put(url, json=payload)
     response.raise_for_status()
     return response.json()
 
 
-# def close_order(order_id):
-#     url = f"{BASE_URL}/order/purchase"
-#     payload = {
-#         "order_id": order_id,
-#         "status": "CLOSE"
-#     }
-#     response = requests.put(url, json=payload)
-#     print(f"close order Payload: {payload}")
-#     response.raise_for_status()
-#     return response.json()
-
-
 def close_order(order_id, shipping_address, user_id):
-    url = f"{BASE_URL}/order/{order_id}/purchase"
+    url = f"{BASE_URL}/order/purchase/{order_id}"
     payload = {
         "order_id": order_id,
         "user_id": user_id,
@@ -222,21 +178,22 @@ def close_order(order_id, shipping_address, user_id):
         "status": "CLOSE",
     }
     response = requests.put(url, json=payload)
-
-    if response.status_code == 422:
-        error_detail = response.json().get('detail', 'Unknown validation error')
-        raise ValueError(f"Validation error: {error_detail}")
-
     response.raise_for_status()
     return response.json()
 
 
+# @st.cache_resource(ttl=10)
+# def get_order_by_user_id(user_id):
+#     url = f"{BASE_URL}/order/user/{user_id}"
+#     response = requests.get(url)
+#     response.raise_for_status()
+#     return response.json()
+
 @st.cache_resource(ttl=10)
-def get_order_by_user_id(user_id):
-    url = f"{BASE_URL}/order/user/{user_id}"
+def get_order_by_id(order_id):
+    url = f"{BASE_URL}/order/{order_id}"
     response = requests.get(url)
     response.raise_for_status()
-    # print(f"get order{response.json()}")
     return response.json()
 
 
@@ -245,7 +202,6 @@ def get_order_by_order_and_user_id(order_id, user_id):
     url = f"{BASE_URL}/order/{order_id}/user/{user_id}"
     response = requests.get(url)
     response.raise_for_status()
-    print(f"get temp order in api: {response.json()}")
     return response.json()
 
 
@@ -254,14 +210,7 @@ def get_temp_order(user_id):
     url = f"{BASE_URL}/order/temp/{user_id}"
     response = requests.get(url)
     response.raise_for_status()
-    # print(f"get temp order in api: {response.json()}")
     return response.json()
-
-
-def delete_item_from_order(order_id, item_id):
-    url = f"{BASE_URL}/order/{order_id}/item/{item_id}"
-    response = requests.delete(url)
-    response.raise_for_status()
 
 
 def delete_order(order_id):
@@ -270,6 +219,7 @@ def delete_order(order_id):
     response.raise_for_status()
 
 
-
-
-
+def delete_item_from_order(order_id, item_id):
+    url = f"{BASE_URL}/order/{order_id}/item/{item_id}"
+    response = requests.delete(url)
+    response.raise_for_status()

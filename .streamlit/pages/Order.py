@@ -26,24 +26,23 @@ if 'order_summary' not in st.session_state:
     st.session_state['order_summary'] = None
 
 st.set_page_config(
-    page_title="Order",  # Sets the browser tab title
-    page_icon="🛒",  # Optional: Add a shopping cart emoji as an icon
-    layout="wide",  # Optional: Choose layout
+    page_title="Order",
+    page_icon="🛒",
+    layout="wide",
 )
 
 st.title("Order 🛒")
-if not st.session_state.order_summary:
-    try:
-        temp_order = get_temp_order(user_id)
-        if temp_order:
-            st.session_state.temp_order = temp_order
-            st.session_state.current_order_id = temp_order['id']
-            st.session_state.order_quantities = temp_order['item_quantities']
-            st.session_state.total_price = temp_order['total_price']
-
-    except Exception as e:
-        st.error(f"Error fetching items: {e}")
-        temp_order = None
+# if not st.session_state.order_summary:
+try:
+    temp_order = get_temp_order(user_id)
+    if temp_order:
+        st.session_state.temp_order = temp_order
+        st.session_state.current_order_id = temp_order['id']
+        st.session_state.order_quantities = temp_order['item_quantities']
+        st.session_state.total_price = temp_order['total_price']
+except Exception as e:
+    st.error(f"Error fetching items: {e}")
+    temp_order = None
 
 if st.session_state.order_summary:
     order_summary = st.session_state.order_summary
@@ -55,6 +54,7 @@ if st.session_state.order_summary:
     st.markdown(f"**Total Price:** ${order_summary['total_price']:.2f}")
     st.markdown(f"**Shipping Address:** {order_summary['shipping_address']}")
     st.markdown(f"**Order Number:** {order_summary['order_number']}")
+    st.markdown(f"**Order Date:** {order_summary['order_date']}")
 
 elif st.session_state.temp_order:
     temp_order = st.session_state.temp_order
@@ -76,10 +76,12 @@ elif st.session_state.temp_order:
                 value=quantity,
                 key=quantity_key
             )
-            if new_quantity != quantity:
+            if new_quantity != quantity and new_quantity != 0:
                 update_temp_order_quantities(user_id, item_id, new_quantity)
                 st.session_state.order_quantities[item_id] = new_quantity
+                st.rerun()
             if new_quantity == 0:
+                update_temp_order_quantities(user_id, item_id, 0)
                 updated_temp_order = get_temp_order(user_id)
                 st.session_state.temp_order = updated_temp_order
                 st.session_state.order_quantities = updated_temp_order['item_quantities']
@@ -111,10 +113,12 @@ elif st.session_state.temp_order:
             st.write(f"### Order Summary:")
 
             finished_order = get_order_by_order_and_user_id(temp_order['id'], user_id)
+            print(f"finished order: {finished_order}")
             st.session_state.order_summary = {
                 "item": finished_order['item'],
                 "total_price": st.session_state.total_price,
                 "shipping_address": shipping_address,
+                "order_date": finished_order['order_date'],
                 "order_number": order_number,
             }
             st.session_state.temp_order = None

@@ -3,10 +3,10 @@ import webbrowser
 
 import streamlit as st
 
-# from api.api import register_user, get_jwt_token
-
 register_user = st.session_state.functions['register_user']
 get_jwt_token = st.session_state.functions['get_jwt_token']
+get_user = st.session_state.functions['get_user']
+# delete_user_by_id = st.session_state.functions['delete_user_by_id']
 
 if 'jwt_token' not in st.session_state:
     st.session_state['jwt_token'] = None
@@ -18,23 +18,48 @@ if 'show_login_form' not in st.session_state:
     st.session_state['show_login_form'] = False
 
 st.set_page_config(
-    page_title="Account",  # Sets the browser tab title
-    page_icon="📝",  # Optional: Add a notepad emoji as an icon
-    layout="centered",  # Optional: Choose centered layout for forms
-    menu_items={
-        'Get Help': None,
-        'Report a bug': None,
-        'About': None,
-    }
+    page_title="Account",
+    page_icon="📝",
+    layout="centered",
 )
 
 st.title("User Management Application")
 
-col1, col2, col3 = st.columns([1, 1, 1])
+# if st.session_state.get('registration_success', False):
+#     st.success("Registration complete! Proceed to the Home page.")
+#     if st.button('To Home page'):
+#         username = st.session_state.get('username')
+#         password = st.session_state.get('password')
+#         jwt_token, user_id = get_jwt_token(username, password)
+#         if jwt_token:
+#             st.session_state['jwt_token'] = jwt_token
+#             st.session_state['user_id'] = user_id
+#             st.session_state.show_registration_form = False
+#             st.session_state['registration_success'] = False
+#             st.switch_page("Home.py")
+#         else:
+#             st.error("Failed to log in. Please try again.")
+
+user_id = st.session_state.get('user_id')
+token = st.session_state.get('jwt_token')
+
+if user_id and token:
+    user_details = get_user(user_id, token)
+    if user_details:
+        st.header(f"Welcome, {user_details['first_name']}!")
+    else:
+        st.warning("Session expired or invalid. Please log in again.")
+        st.session_state['jwt_token'] = None
+        st.session_state['user_id'] = None
+
+col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
 with col1:
     if st.button("Register here", key="toggle_register_form"):
-        st.session_state.show_registration_form = not st.session_state.show_registration_form
-        st.session_state.show_login_form = False
+        if st.session_state['jwt_token']:
+            st.error("To register, you need to logout first.")
+        else:
+            st.session_state.show_registration_form = not st.session_state.show_registration_form
+            st.session_state.show_login_form = False
 
     if st.session_state.show_registration_form:
         st.header("Register a New User")
@@ -48,23 +73,35 @@ with col1:
 
         if st.button("Register", key="submit_register"):
             register_response = register_user(first_name, last_name, email, phone, address, username, password)
-
             if register_response.status_code == 201:
                 st.success("Registered successfully!")
+                st.session_state['registration_success'] = True
+                st.session_state['username'] = username
+                st.session_state['password'] = password
+                st.session_state.show_registration_form = False
                 time.sleep(2)
-                # st.rerun()
                 jwt_token, user_id = get_jwt_token(username, password)
-
-                if jwt_token:
-                    st.session_state['jwt_token'] = jwt_token
-                    st.session_state['user_id'] = user_id
-                    st.success("Registered successfully!")
-                    time.sleep(2)
-                    st.switch_page("Home.py")
-                else:
-                    st.error("Registration succeeded but login failed. Please try logging in manually.")
+                st.session_state['jwt_token'] = jwt_token
+                st.session_state['user_id'] = user_id
+                st.switch_page("Home.py")
+                # st.rerun()
+                # if st.button('To Home page'):
+                #     username = st.session_state.get('username')
+                #     password = st.session_state.get('password')
+                #
+                #     st.session_state.show_registration_form = False
+                #
+                # st.rerun()
+            elif register_response.status_code == 400:
+                st.error("The username is already taken. Please choose a different username.")
             else:
                 st.error("Registration failed. Please check the provided details.")
+            # if st.session_state.get('jwt_token'):
+            #     # st.session_state['jwt_token'] = jwt_token
+            #     # st.session_state['user_id'] = user_id
+            #     time.sleep(2)
+            #     st.switch_page("Home.py")
+
 with col2:
     if st.button("Login here", key="toggle_login_form"):
         st.session_state.show_login_form = not st.session_state.show_login_form
@@ -81,13 +118,30 @@ with col2:
                 st.session_state['user_id'] = user_id
                 st.success("Logged in successfully!")
                 time.sleep(2)
+                st.session_state.show_login_form = False
                 st.switch_page("Home.py")
             else:
                 st.error("Login failed. Check your credentials.")
-with col3:
-    if st.button("Logout"):
-        st.session_state['jwt_token'] = None
-        st.success("Logged out successfully!")
+
+if user_id and token:
+    with col3:
+        if st.button("Logout"):
+            st.session_state['jwt_token'] = None
+            st.session_state['user_id'] = None
+            st.success("Logged out successfully!")
+            st.rerun()
+
+    # with col4:
+    #     if st.button("Delete user"):
+    #         delete_user_by_id(user_id)
+    #         st.session_state['jwt_token'] = None
+    #         st.session_state['user_id'] = None
+    #         st.success("User deleted successfully!")
+    #         st.rerun()
+
+
+
+
 # Adjust button positioning
 # with st.sidebar:
 #     col1, _, col3 = st.columns([1, 0.5, 1])

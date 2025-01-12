@@ -62,7 +62,7 @@ async def create_user(user_request: UserRequest):
 
 
 async def update_user_by_id(user_id: int, user_request: UserRequest, token: str):
-    updated_user = UserResponse(
+    updated_user = User(
         first_name=user_request.first_name,
         last_name=user_request.last_name,
         email=user_request.email,

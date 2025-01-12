@@ -1,8 +1,7 @@
 import time
 import streamlit as st
 
-get_all_items = st.session_state.functions['get_all_items']
-add_item_to_favorite_items = st.session_state.functions['add_item_to_favorite_items']
+
 get_jwt_token = st.session_state.functions['get_jwt_token']
 get_favorite_items = st.session_state.functions['get_favorite_items']
 get_favorite_items_by_user_id = st.session_state.functions['get_favorite_items_by_user_id']
@@ -18,36 +17,36 @@ if "jwt_token" not in st.session_state or not st.session_state.jwt_token:
     st.warning("You must be logged in to view this page.")
     st.stop()
 
+if 'favorite_items' not in st.session_state:
+    st.session_state['favorite_items'] = None
+
+# if "favorite_items" not in st.session_state:
+#     st.session_state["favorite_items"] = get_favorite_items_by_user_id(user_id)
+
 st.set_page_config(
-    page_title="Favorite Items",  # Sets the browser tab title
-    page_icon="⭐",  # Optional: Add a custom icon
-    layout="wide",  # Optional: Choose layout
-    menu_items={
-        'Get Help': None,  # Hide "Get Help" option
-        'Report a bug': None,  # Hide "Report a bug" option
-        'About': None,  # Hide "About" menu
-    }
+    page_title="Favorite Items",
+    page_icon="⭐",
+    layout="wide",
 )
 
 st.title("Favorite Items")
-st.write("Manage your favorite items here!")
+
+# if "success_message" in st.session_state:
+#     st.success(st.session_state.success_message)
+#     time.sleep(5)
+#     del st.session_state.success_message
+#     st.rerun()
 
 try:
-    # all_items = get_all_items()
     favorite_items = get_favorite_items_by_user_id(user_id)
-    st.session_state.favorite_items = get_favorite_items_by_user_id(user_id)
+    if favorite_items:
+        st.session_state.favorite_items = favorite_items
 except Exception as e:
     st.error(f"Error fetching items: {e}")
-    # all_items = []
-    favorite_items = []
+    favorite_items = None
 
-st.markdown("### Your Favorite Items")
+
 if favorite_items:
-    # row1 = st.columns(4)
-    # row2 = st.columns(4)
-    #
-    # grid = [col.container(height=200) for col in row1 + row2]
-
     rows = st.columns(4)
     grid = [col.container() for col in rows]
 
@@ -78,17 +77,13 @@ if favorite_items:
                         update_temp_order_quantities(user_id, item['id'], new_quantity)
                         st.session_state.order_quantities[item['id']] = new_quantity
                         st.success(f"'{item['name']}' Added to your existing order!")
-
             with col2:
                 if st.button("Remove", key=f"remove_{i}"):
                     delete_favorite_item(user_id, item["id"])
-                    st.session_state.favorite_items = get_favorite_items_by_user_id(user_id)
+                    # st.session_state.favorite_items = updated_favorite_items
                     st.success(f"Removed '{item['name']}' from favorites.")
+                    time.sleep(4)
                     st.rerun()
-                    # time.sleep(2)
-                    # st.experimental_rerun()
-                    # st.switch_page("FavoriteItems")
-                    # st.session_state["favorite_items_updated"] = True
 else:
     st.info("You have no favorite items.")
 
