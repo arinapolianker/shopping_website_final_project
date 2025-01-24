@@ -7,5 +7,7 @@ class UserRequest(BaseModel):
     email: str
     phone: str
     address: str
+    country: str
+    city: str
     username: str
     password: str

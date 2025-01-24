@@ -22,10 +22,6 @@ async def get_user_by_username(username: str) -> Optional[User]:
     if cache_repository.is_key_exists(str(username)):
         string_user = cache_repository.get_cache_entity(str(username))
         user_data = json.loads(string_user)
-        if "hashed_password" not in user_data or "is_logged" not in user_data:
-            print(f"Cache missing required fields for {username}, fetching from DB.")
-
-        print(f"Cache Data for {username}: {user_data}")
         return User(**user_data)
     else:
         query = f"SELECT * FROM {USER_TABLE_NAME} WHERE username=:username"
@@ -46,8 +42,8 @@ async def get_all_users() -> List[User]:
 
 async def create_user(user: UserRequest, hashed_password: str):
     query = f"""
-        INSERT INTO {USER_TABLE_NAME} (first_name, last_name, email, phone, address, username, hashed_password, is_logged)
-        VALUES (:first_name, :last_name, :email, :phone, :address, :username, :hashed_password, :is_logged)
+        INSERT INTO {USER_TABLE_NAME} (first_name, last_name, email, phone, address, country, city, username, hashed_password, is_logged)
+        VALUES (:first_name, :last_name, :email, :phone, :address, :country, :city, :username, :hashed_password, :is_logged)
     """
     user_dict = user.dict()
     del user_dict["password"]
@@ -69,8 +65,10 @@ async def update_user_by_id(user_id: int, user: UserRequest, hashed_password: Op
         last_name = :last_name,
         email = :email,
         address = :address,
+        country = :country,
+        city = :city,
         username = :username,
-        {", hashed_password = :hashed_password" if hashed_password else ""}
+        {"hashed_password = :hashed_password" if hashed_password else ""}
         WHERE id = :user_id
     """
     values = {
@@ -79,6 +77,8 @@ async def update_user_by_id(user_id: int, user: UserRequest, hashed_password: Op
         "last_name": user.last_name,
         "email": user.email,
         "address": user.address,
+        "country": user.country,
+        "city": user.city,
         "username": user.username
     }
     if hashed_password:
@@ -87,34 +87,38 @@ async def update_user_by_id(user_id: int, user: UserRequest, hashed_password: Op
     await database.execute(query, values=values)
 
 
-async def update_user_by_username(username: str, user: UserRequest, hashed_password: Optional[str] = None):
-    if cache_repository.is_key_exists(str(username)):
-        cache_repository.update_cache_entity(str(username), user.json())
+# async def update_user_by_username(username: str, user: UserRequest, hashed_password: Optional[str] = None):
+#     if cache_repository.is_key_exists(str(username)):
+#         cache_repository.update_cache_entity(str(username), user.json())
+#
+#     query = f"""
+#         UPDATE {USER_TABLE_NAME}
+#         SET first_name = :first_name,
+#         last_name = :last_name,
+#         email = :email,
+#         address = :address,
+#         country = :country,
+#         city = :city,
+#         username = :username,
+#         {"hashed_password = :hashed_password" if hashed_password else ""}
+#         WHERE username = :username
+#     """
+#     values = {
+#         "first_name": user.first_name,
+#         "last_name": user.last_name,
+#         "email": user.email,
+#         "address": user.address,
+#         "country": user.country,
+#         "city": user.city,
+#         "username": username
+#     }
+#     if hashed_password:
+#         values["hashed_password"] = hashed_password
+#
+#     await database.execute(query, values=values)
 
-    query = f"""
-        UPDATE {USER_TABLE_NAME} 
-        SET first_name = :first_name,
-        last_name = :last_name,
-        email = :email,
-        address = :address,
-        username = :username,
-        {", hashed_password = :hashed_password" if hashed_password else ""}
-        WHERE username = :username
-    """
-    values = {
-        "first_name": user.first_name,
-        "last_name": user.last_name,
-        "email": user.email,
-        "address": user.address,
-        "username": username
-    }
-    if hashed_password:
-        values["hashed_password"] = hashed_password
 
-    await database.execute(query, values=values)
-
-
-async def log_user_by_id(user_id: int, is_logged: bool):
+async def login_user(user_id: int):
     query = f"""
         UPDATE {USER_TABLE_NAME} 
         SET is_logged = :is_logged
@@ -122,7 +126,21 @@ async def log_user_by_id(user_id: int, is_logged: bool):
     """
     values = {
         "user_id": user_id,
-        "is_logged": is_logged
+        "is_logged": True
+    }
+
+    await database.execute(query, values=values)
+
+
+async def logout_user(user_id: int):
+    query = f"""
+           UPDATE {USER_TABLE_NAME} 
+           SET is_logged = :is_logged
+           WHERE id = :user_id
+       """
+    values = {
+        "user_id": user_id,
+        "is_logged": False
     }
 
     await database.execute(query, values=values)
@@ -134,8 +152,8 @@ async def delete_user_by_id(user_id: int):
     await database.execute(query, values={"user_id": user_id})
 
 
-async def delete_user_by_username(username: str):
-    cache_repository.remove_cache_entity(str(username))
-    query = f"DELETE FROM {USER_TABLE_NAME} WHERE username=:username"
-    await database.execute(query, values={"username": username})
+# async def delete_user_by_username(username: str):
+#     cache_repository.remove_cache_entity(str(username))
+#     query = f"DELETE FROM {USER_TABLE_NAME} WHERE username=:username"
+#     await database.execute(query, values={"username": username})
 

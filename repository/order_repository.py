@@ -22,17 +22,6 @@ async def get_order_by_user_id(user_id: int) -> List[Order]:
     results = await database.fetch_all(query, values={"user_id": user_id})
     return [Order(**result) for result in results]
 
-#
-# async def get_order_by_order_and_user_id(order_id: int, user_id: int) -> Optional[Order]:
-#     query = f"""
-#             SELECT * FROM {TABLE_NAME}
-#             WHERE id = :order_id AND user_id = :user_id
-#         """
-#     result = await database.fetch_one(query, values={"order_id": order_id, "user_id": user_id})
-#     if result:
-#         return result
-#     return None
-
 
 async def get_temp_order_by_user_id(user_id: int) -> Optional[Order]:
     query = f"""
@@ -115,12 +104,8 @@ async def update_order_status(order_id: int, shipping_address: str, status: Orde
         "shipping_address": shipping_address,
         "status": status.value
     }
-    print(f"Update query values: {values}")
-    try:
-        await database.execute(query, values)
-    except Exception as e:
-        print(f"Database update failed: {e}")
-        raise
+    await database.execute(query, values)
+
 
 
 async def delete_order_by_id(order_id: int):
@@ -131,10 +116,4 @@ async def delete_order_by_id(order_id: int):
 async def delete_order_by_user_id(user_id: int):
     query = f"DELETE FROM {TABLE_NAME} WHERE user_id=:user_id"
     await database.execute(query, values={"user_id": user_id})
-
-
-# async def delete_items_from_order(order_id: int, item_id: int):
-#     query = f"DELETE FROM {TABLE_NAME} WHERE status = 'TEMP'"
-#     temp_orders = await database.fetch_all()
-#     await database.execute(query, values={"item_id": item_id})
 

@@ -5,7 +5,7 @@ import requests
 BASE_URL = "http://localhost:8000"
 
 
-def register_user(first_name, last_name, email, phone, address, username, password):
+def register_user(first_name, last_name, email, phone, address, country, city, username, password):
     url = f"{BASE_URL}/user/"
     payload = {
         "first_name": first_name,
@@ -13,11 +13,12 @@ def register_user(first_name, last_name, email, phone, address, username, passwo
         "email": email,
         "phone": phone,
         "address": address,
+        "country": country,
+        "city": city,
         "username": username,
         "password": password
     }
     response = requests.post(url, json=payload)
-    print(response)
     return response
 
 
@@ -27,9 +28,7 @@ def get_jwt_token(username, password):
         "username": username,
         "password": password
     }
-    # print("form_data sent to /auth/token:", form_data)
     response = requests.post(url, data=form_data)
-    # print("Login Response:", response.status_code, response.text)
     if response.status_code == 401:
         return None, None
     else:
@@ -83,12 +82,6 @@ def get_all_users(token):
     return response.json()
 
 
-# @st.cache_resource(ttl=60)
-# def get_user(user_id):
-#     url = f"{BASE_URL}/user/{user_id}"
-#     response = requests.get(url)
-#     return response.json()
-
 @st.cache_resource(ttl=60)
 def get_user(user_id, token):
     url = f"{BASE_URL}/user/{user_id}"
@@ -97,10 +90,18 @@ def get_user(user_id, token):
     return response.json()
 
 
-# def delete_user_by_id(user_id):
-#     url = f"{BASE_URL}/user/{user_id}"
-#     response = requests.delete(url)
-#     response.raise_for_status()
+def logout_user(token):
+    url = f"{BASE_URL}/user/logout/"
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.put(url, headers=headers)
+    return response.json()
+
+
+def delete_user_by_id(user_id, token):
+    url = f"{BASE_URL}/user/{user_id}"
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.delete(url, headers=headers)
+    response.raise_for_status()
 
 
 @st.cache_resource(ttl=10)
@@ -116,10 +117,6 @@ def add_item_to_favorite_items(user_id, item_id):
     response = requests.post(url, json=payload)
     response.raise_for_status()
     return response.json()
-    # except requests.exceptions.HTTPError as http_err:
-    #     return {"error": f"HTTP error occurred: {http_err}"}
-    # except Exception as err:
-    #     return {"error": f"An error occurred: {err}"}
 
 
 # @st.cache_resource(ttl=10)
@@ -158,7 +155,7 @@ def create_order(user_id, shipping_address, item_quantities, total_price, status
 
 
 def update_temp_order_quantities(user_id, item_id, quantity):
-    url = f"{BASE_URL}/order//update_order_quantities"
+    url = f"{BASE_URL}/order/update_order_quantities/"
     payload = {
         "user_id": user_id,
         "item_id": item_id,
@@ -182,12 +179,13 @@ def close_order(order_id, shipping_address, user_id):
     return response.json()
 
 
-# @st.cache_resource(ttl=10)
-# def get_order_by_user_id(user_id):
-#     url = f"{BASE_URL}/order/user/{user_id}"
-#     response = requests.get(url)
-#     response.raise_for_status()
-#     return response.json()
+@st.cache_resource(ttl=10)
+def get_order_by_user_id(user_id):
+    url = f"{BASE_URL}/order/user/{user_id}"
+    response = requests.get(url)
+    response.raise_for_status()
+    return response.json()
+
 
 @st.cache_resource(ttl=10)
 def get_order_by_id(order_id):
@@ -197,15 +195,7 @@ def get_order_by_id(order_id):
     return response.json()
 
 
-@st.cache_resource(ttl=10)
-def get_order_by_order_and_user_id(order_id, user_id):
-    url = f"{BASE_URL}/order/{order_id}/user/{user_id}"
-    response = requests.get(url)
-    response.raise_for_status()
-    return response.json()
-
-
-@st.cache_resource(ttl=1)
+# @st.cache_resource(ttl=10)
 def get_temp_order(user_id):
     url = f"{BASE_URL}/order/temp/{user_id}"
     response = requests.get(url)

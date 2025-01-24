@@ -22,11 +22,11 @@ async def get_order_item(order_id: int, item_id: int) -> List[OrderItem]:
     return result
 
 
-async def get_all_order_items(order_id: int) -> List[OrderItem]:
+async def get_all_order_items() -> List[OrderItem]:
     query = f"""
         SELECT * FROM {TABLE_NAME}
     """
-    results = await database.fetch_all(query, values={"order_id": order_id})
+    results = await database.fetch_all(query)
     return [OrderItem(**dict(result)) for result in results]
 
 

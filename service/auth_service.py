@@ -1,4 +1,7 @@
 from datetime import timedelta, datetime
+
+from fastapi import Depends
+from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from exceptions.security_exceptions import token_exception
 from config.config import Config
@@ -7,17 +10,17 @@ from model.user_response import UserResponse
 from service import user_service
 
 config = Config()
+oauth2_bearer = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 
 async def authenticate_user(username: str, password: str):
     user = await user_service.get_user_by_username(username)
-    print("User retrieved:", user)
     if not user or not user_service.verify_password(password, user.hashed_password):
         return False
     return user
 
 
-async def validate_user(token: str) -> UserResponse:
+async def validate_user(token: str = Depends(oauth2_bearer)) -> UserResponse:
     return await validate_user_check(token)
 
 

@@ -11,6 +11,9 @@ from model.user import User
 class OrderRequest(BaseModel):
     id: Optional[int] = None
     user_id: int
+
+    # country: str
+    # city: str
     shipping_address: str
     item_quantities: Dict[int, int]
     total_price: float

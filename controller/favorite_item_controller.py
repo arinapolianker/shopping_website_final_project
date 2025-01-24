@@ -24,9 +24,9 @@ async def get_by_id(favorite_item_id: int) -> Optional[FavoriteItem]:
 
 @router.get("/user/{user_id}", response_model=List[FavoriteItemResponse])
 async def get_favorite_items_by_user_id(user_id: int) -> List[FavoriteItemResponse]:
-    user_exists = user_service.get_user_by_id(user_id)
-    if not user_exists:
-        raise HTTPException(status_code=404, detail=f"Favorite Items for user with id:{user_id} not found...")
+    user = await user_service.get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail=f"User with id:{user_id} not found...")
     return await favorite_item_service.get_favorite_items_by_user_id(user_id)
 
 

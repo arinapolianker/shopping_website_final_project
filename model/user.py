@@ -10,6 +10,8 @@ class User(BaseModel):
     email: str
     phone: str
     address: str
+    country: str
+    city: str
     username: str
     hashed_password: str
     is_logged: bool

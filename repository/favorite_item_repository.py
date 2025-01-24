@@ -76,6 +76,11 @@ async def delete_by_user_and_item_id(user_id: int, item_id: int):
     await database.execute(query, values={"user_id": user_id, "item_id": item_id})
 
 
+async def delete_favorites_by_user_id(user_id: int):
+    query = f"DELETE FROM {TABLE_NAME} WHERE user_id = :user_id"
+    await database.execute(query, values={"user_id": user_id})
+
+
 async def delete_favorite_items_by_item_id(item_id: int):
     query = f"DELETE FROM {TABLE_NAME} WHERE item_id=:item_id"
     await database.execute(query, values={"item_id": item_id})

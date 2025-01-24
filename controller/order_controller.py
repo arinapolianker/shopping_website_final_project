@@ -44,7 +44,7 @@ async def get_temp_order(user_id: int):
             raise HTTPException(status_code=404, detail=f"User with id:{user_id} not found...")
         temp_order = await order_service.get_temp_order_by_user_id(user_id)
         if not temp_order:
-            raise HTTPException(status_code=404, detail="TEMP Order not found")
+            return HTTPException(status_code=404, detail="TEMP Order not found")
         return temp_order
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -94,8 +94,9 @@ async def update_order(order_id: int, order_request: OrderRequest):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.put("/update_order_quantities")
+@router.put("/update_order_quantities/")
 async def update_temp_order_quantities(request: OrderItemQuantity):
+    print(f"Received request: {request}")
     try:
         await order_service.update_temp_order(request.user_id, request.item_id, request.quantity)
         if request.quantity == 0:

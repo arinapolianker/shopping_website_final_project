@@ -12,6 +12,8 @@ class Order(BaseModel):
     user_id: int
     order_date: date
     shipping_address: str
+    # country: str
+    # city: str
     total_price: float
     status: OrderStatus
 
