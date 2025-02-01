@@ -1,136 +1,192 @@
-Shopping Website Final Project
+# Shopping Website with ChatGPT Assistant
 
-Project Overview
+A full-stack e-commerce application built with FastAPI and Streamlit, featuring a ChatGPT-powered assistant for product inquiries.
 
-This project is a shopping website implemented using FastAPI, Streamlit, and several other tools and technologies. It includes a backend with database interactions, caching, and a user-friendly UI for managing the shopping experience.
+## 🚀 Features
 
-Features
+- **Product Management**: Browse, search, and filter products
+- **Shopping Cart**: Add/remove items, manage quantities
+- **Order System**: Create and manage orders
+- **User Authentication**: Secure login and registration
+- **ChatGPT Assistant**: AI-powered product assistance
+- **Favorites System**: Save and manage favorite products
 
-Backend: Developed using FastAPI for API management.
+## 🛠 Tech Stack
 
-Database: MySQL is used to store data, initialized using Docker and managed via Beekeeper Studio.
+### Backend
+- Python FastAPI
+- MySQL Database
+- Redis Caching
+- Docker Containerization
 
-Caching: Redis is integrated for caching to improve performance.
+### Frontend
+- Streamlit UI
+- Python
+- OpenAI ChatGPT API
 
-UI: Streamlit provides an interactive user interface.
+### Testing & Development Tools
+- Postman (API testing)
+- Beekeeper Studio (database management)
 
-Docker: Docker Compose is used to manage services and ensure easy setup.
+## 📋 Prerequisites
 
-Tech Stack
+- Docker and Docker Compose
+- Python 3.9+
+- OpenAI API Key
+- Postman (for API testing)
+- Beekeeper Studio (optional, for database management)
 
-Programming Language: Python 3.11
+## 🔧 Installation & Setup
 
-Backend Framework: FastAPI
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd shopping_website_final_project
+   ```
 
-Frontend Framework: Streamlit
+2. **Install Python dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-Database: MySQL
+3. **Set up environment variables**
+   - Create a `.env` file in the root directory
+   - Add your OpenAI API key:
+     ```
+     OPENAI_API_KEY=your_api_key_here
+     ```
 
-Caching: Redis
+4. **Start Docker containers**. Run these commands in sequence:
+   ```bash
+   # First, start the containers with the yaml configuration
+    docker-compose -f docker-compose.yaml up
+    
+    # Then, rebuild and start in detached mode
+    docker-compose up -d --build
+   ```
+   This will start:
+   - MySQL database (port 3306)
+   - Redis cache (port 6379)
 
-Containerization: Docker Compose
+## 🚀 Running the Application
 
-Database Management Tool: Beekeeper Studio
+1. **Start the FastAPI backend**
+   ```bash
+   uvicorn main:app --reload
+   ```
+   The API will be available at `http://localhost:8000`
 
-Prerequisites
+2. **Start the Streamlit frontend**
+   ```bash
+   streamlit run .streamlit/app/Home.py
+   ```
+   The web interface will open automatically at `http://localhost:8501`
 
-Install Docker.
+## 📊 Database Management
 
-Install Beekeeper Studio.
+You can view and manage the database using Beekeeper Studio:
 
-Install Python 3.11 or later.
+1. Open Beekeeper Studio
+2. Connect to MySQL with these credentials:
+   - Host: localhost
+   - Port: 3306
+   - User: user
+   - Password: password
+   - Database: main
 
-Install the required Python libraries by running:
+## 🤖 Using the ChatGPT Assistant
 
-pip install -r requirements.txt
+1. Navigate to the Chat Assistant page in the Streamlit UI
+2. Enter your OpenAI API key in the sidebar
+3. Start asking questions about products!
 
-Setup Instructions
+## 📁 Project Structure
 
-Step 1: Clone the Repository
-
-Clone this repository to your local machine:
-
-git clone <repository_url>
-cd shopping_website_final_project
-
-Step 2: Start Services with Docker Compose
-
-Start the database and Redis services using Docker Compose:
-
-docker-compose up -d --build
-
-This will start:
-
-MySQL on port 3306
-
-Redis on port 6379
-
-Step 3: Initialize the Database
-
-The database schema will be automatically initialized using the scripts in resources/db-migrations/ when the MySQL container starts.
-
-Step 4: Run the Backend
-
-Start the FastAPI backend server:
-
-uvicorn main:app --reload
-
-The API will be accessible at http://localhost:8000.
-
-Step 5: Run the Streamlit UI
-
-In a new terminal, start the Streamlit application:
-
-streamlit run .streamlit/app/Home.py
-
-The UI will be accessible at http://localhost:8501.
-
-Usage
-
-Use Beekeeper Studio to connect to the MySQL database at localhost:3306 with the credentials defined in docker-compose.yaml.
-
-Interact with the backend API via FastAPI’s interactive docs at http://localhost:8000/docs.
-
-Use the Streamlit UI to browse and interact with the shopping website.
-
-File Structure
-
+```
 shopping_website_final_project/
-├── .streamlit/                  # Streamlit configuration
-├── config/                      # Configuration files
-├── controller/                  # Controller logic
-├── model/                       # Data models
-├── redisClient/                 # Redis client configuration
-├── repository/                  # Database repository layer
-├── resources/db-migrations/     # Database initialization scripts
-├── service/                     # Business logic layer
-├── main.py                      # FastAPI entry point
-├── docker-compose.yaml          # Docker Compose configuration
-├── requirements.txt             # Python dependencies
-├── README.md                    # Project documentation
+├── .streamlit/
+│   └── app/
+│       ├── pages/
+│       └── Home.py
+├── config/
+│   └── config.py
+├── controller/
+├── exceptions/
+├── model/
+├── redisClient/
+│   └── redis_client.py
+├── repository/
+├── resources/
+│   └── db-migrations/
+├── service/
+├── docker-compose.yaml
+├── main.py
+├── README.md
+└── requirements.txt
+```
 
-Additional Notes
+## 🔄 Development Workflow
 
-Caching: Redis is used for storing temporary data to enhance performance.
+1. Make changes to the code
+2. If you modify the database schema:
+   - Update the migration files in `resources/db-migrations`
+   - Restart the Docker containers:
+     ```bash
+     docker-compose down
+     docker-compose up -d
+     ```
 
-Database GUI: Beekeeper Studio provides an easy way to view and manage the MySQL database.
+3. For frontend changes:
+   - The Streamlit interface will automatically reload
+   - Access the UI at `http://localhost:8501`
 
-Streamlit: The UI allows you to interact with the backend seamlessly.
+4. For backend changes:
+   - The FastAPI server will automatically reload
+   - Access the API docs at `http://localhost:8000/docs`
 
-Commands Summary
+## 🛠 Troubleshooting
 
-Start Docker services:
+- **Database Connection Issues**
+  ```bash
+  docker-compose down
+  docker volume rm shopping_website_final_project_mysql-data
+  docker-compose up -d
+  ```
 
-docker-compose up -d --build
+- **Redis Cache Issues**
+  ```bash
+  docker-compose restart redis
+  ```
 
-Start the FastAPI backend:
+- **Streamlit Port Already in Use**
+  ```bash
+  lsof -i :8501
+  kill -9 <PID>
+  ```
 
-uvicorn main:app --reload
+## 🔐 Security Notes
 
-Start the Streamlit UI:
+- Never commit your OpenAI API key
+- Change default database credentials in production
+- Use proper environment variables for sensitive data
 
-streamlit run .streamlit/app/Home.py
+## 🤝 Contributing
 
-License
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
-This project is licensed under the MIT License. See LICENSE for details.
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 👤 Contact
+Have questions? Feel free to reach out:
+- **Email**: arinapolianker@gmail.com
+- **LinkedIn**: [Arina Polianker](https://www.linkedin.com/in/arina-polianker-ab423b227/)
+- **GitHub**: [arinapolianker](https://github.com/arinapolianker)
+
+
+
