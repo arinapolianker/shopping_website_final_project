@@ -1,5 +1,3 @@
-import json
-import logging
 from datetime import date
 from typing import Optional, List, Dict
 
@@ -153,7 +151,7 @@ async def get_all_orders() -> List[Order]:
     return await order_repository.get_all_orders()
 
 
-async def create_order(order_request: OrderRequest) -> None:
+async def create_order(order_request: OrderRequest):
     try:
         user = await user_repository.get_user_by_id(order_request.user_id)
         if not user:
@@ -270,7 +268,7 @@ async def update_temp_order(user_id: int, item_id: int, quantity: int):
     await order_repository.update_temp_order(temp_order.id, total_price)
 
 
-async def update_order_status(order_id: int, user_id: int, shipping_address: str, status: OrderStatus):
+async def update_order_status(user_id: int, shipping_address: str, status: OrderStatus):
     temp_order = await get_temp_order_by_user_id(user_id)
     if not temp_order:
         raise ValueError(f"Open order with ID {user_id} not found")
@@ -322,4 +320,3 @@ async def delete_item_from_order(order_id: int, item_id: int):
     remaining_items = await order_item_repository.get_order_items_by_order_id(order_id)
     if not remaining_items:
         await order_repository.delete_order_by_id(order_id)
-

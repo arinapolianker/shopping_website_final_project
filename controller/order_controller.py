@@ -9,7 +9,7 @@ from model.order_request import OrderRequest
 from model.order_response import OrderResponse
 from model.order_status import OrderStatus
 from repository import order_repository, order_item_repository
-from service import order_service, user_service, item_service
+from service import order_service, user_service
 
 router = APIRouter(
     prefix="/order",
@@ -49,18 +49,7 @@ async def get_temp_order(user_id: int):
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        print(f"Unexpected Error: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
-# @router.get("/{order_id}/user/{user_id}")
-# async def get_order_by_order_and_user_id(order_id: int, user_id: int):
-#     try:
-#         order = await order_service.get_order_by_order_and_user_id(order_id, user_id)
-#         if not order:
-#             return None
-#         return order
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"An error occurred while fetching orders. error: {e}")
-#
 
 
 @router.get("/", response_model=Optional[List[Order]])
@@ -74,8 +63,7 @@ async def get_all_orders():
 @router.post("/")
 async def create_order(order_request: OrderRequest):
     try:
-        await order_service.create_order(order_request)
-        return {"success in creating order": True, "message": "Order created successfully."}
+        return await order_service.create_order(order_request)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -96,13 +84,8 @@ async def update_order(order_id: int, order_request: OrderRequest):
 
 @router.put("/update_order_quantities/")
 async def update_temp_order_quantities(request: OrderItemQuantity):
-    print(f"Received request: {request}")
     try:
         await order_service.update_temp_order(request.user_id, request.item_id, request.quantity)
-        if request.quantity == 0:
-            return {"message": f"Item {request.item_id} removed from the TEMP order"}
-        else:
-            return {"message": f"Item {request.item_id} updated in the TEMP order"}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
@@ -118,7 +101,7 @@ async def update_order_status(request: OrderClose):
         if order.status == OrderStatus.CLOSE:
             raise HTTPException(status_code=400, detail="Order is already closed")
 
-        await order_service.update_order_status(request.order_id, request.user_id, request.shipping_address, request.status)
+        await order_service.update_order_status(request.user_id, request.shipping_address, request.status)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
@@ -130,7 +113,6 @@ async def delete_order_by_id(order_id: int):
         if not order:
             raise HTTPException(status_code=404, detail="Order not found")
         await order_service.delete_order_by_id(order_id)
-        return {"message": "Order successfully deleted"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -149,6 +131,5 @@ async def delete_item_from_order(order_id: int, item_id: int):
             raise HTTPException(status_code=404, detail=f"Item with id:{item_id} is not in the order.")
 
         await order_service.delete_item_from_order(order_id, item_id)
-        return {"message": f"Item with id:{item_id} removed from order with id:{order_id}"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

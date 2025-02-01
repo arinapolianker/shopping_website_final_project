@@ -43,12 +43,22 @@ def fetch_filtered_items(name=None, stock_filter=None, price_filter=None):
     try:
         items = get_all_items()
         if name:
-            queries = [query.strip().lower() for query in name.split(",")]
-            filtered_items = []
-            for item in items:
-                if any(query in item['name'].lower() for query in queries):
-                    filtered_items.append(item)
-            items = filtered_items
+            search_terms = []
+            special_commands = []
+
+            for term in name.split(","):
+                term = term.strip()
+                parts = term.split()
+                if len(parts) == 3 and parts[0] in ["stock", "price"] and parts[1] in ["<", ">", "="]:
+                    special_commands.append(parts)
+                else:
+                    search_terms.append(term.lower())
+            if search_terms:
+                filtered_items = []
+                for item in items:
+                    if any(term in item['name'].lower() for term in search_terms):
+                        filtered_items.append(item)
+                items = filtered_items
 
         if stock_filter:
             operator, value = stock_filter
@@ -74,15 +84,6 @@ def fetch_filtered_items(name=None, stock_filter=None, price_filter=None):
         return []
 
 
-@st.cache_resource(ttl=10)
-def get_all_users(token):
-    url = f"{BASE_URL}/user/"
-    headers = {"Authorization": f"Bearer {token}"}
-    response = requests.get(url, headers=headers)
-    return response.json()
-
-
-@st.cache_resource(ttl=60)
 def get_user(user_id, token):
     url = f"{BASE_URL}/user/{user_id}"
     headers = {"Authorization": f"Bearer {token}"}
@@ -104,10 +105,11 @@ def delete_user_by_id(user_id, token):
     response.raise_for_status()
 
 
-@st.cache_resource(ttl=10)
+@st.cache_resource(ttl=30)
 def get_all_items():
     url = f"{BASE_URL}/item/"
     response = requests.get(url)
+    response.raise_for_status()
     return response.json()
 
 
@@ -119,18 +121,9 @@ def add_item_to_favorite_items(user_id, item_id):
     return response.json()
 
 
-# @st.cache_resource(ttl=10)
 def get_favorite_items_by_user_id(user_id):
     url = f"{BASE_URL}/favorite_item/user/{user_id}"
     response = requests.get(url)
-    return response.json()
-
-
-@st.cache_resource(ttl=10)
-def get_favorite_items():
-    url = f"{BASE_URL}/favorite_item/"
-    response = requests.get(url)
-    response.raise_for_status()
     return response.json()
 
 
@@ -179,7 +172,7 @@ def close_order(order_id, shipping_address, user_id):
     return response.json()
 
 
-@st.cache_resource(ttl=10)
+@st.cache_resource(ttl=30)
 def get_order_by_user_id(user_id):
     url = f"{BASE_URL}/order/user/{user_id}"
     response = requests.get(url)
@@ -187,7 +180,6 @@ def get_order_by_user_id(user_id):
     return response.json()
 
 
-@st.cache_resource(ttl=10)
 def get_order_by_id(order_id):
     url = f"{BASE_URL}/order/{order_id}"
     response = requests.get(url)
@@ -195,18 +187,12 @@ def get_order_by_id(order_id):
     return response.json()
 
 
-# @st.cache_resource(ttl=10)
+@st.cache_resource(ttl=2)
 def get_temp_order(user_id):
     url = f"{BASE_URL}/order/temp/{user_id}"
     response = requests.get(url)
     response.raise_for_status()
     return response.json()
-
-
-def delete_order(order_id):
-    url = f"{BASE_URL}/order/{order_id}"
-    response = requests.delete(url)
-    response.raise_for_status()
 
 
 def delete_item_from_order(order_id, item_id):

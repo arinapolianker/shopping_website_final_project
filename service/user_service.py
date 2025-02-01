@@ -2,12 +2,12 @@ from typing import Optional, List
 
 from passlib.context import CryptContext
 
-from exceptions.security_exceptions import username_taken_exception, token_exception
+from exceptions.security_exceptions import username_taken_exception
 from model.user import User
 from model.user_request import UserRequest
 from model.user_response import UserResponse
 from repository import user_repository, favorite_item_repository, order_repository
-from service import order_service, favorite_item_service
+from service import order_service
 
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -43,7 +43,7 @@ async def get_user_by_id(user_id: int) -> Optional[UserResponse]:
     return user_to_response(user) if user else None
 
 
-async def get_user_by_username(username: str) -> Optional[UserResponse]:
+async def get_user_by_username(username: str) -> Optional[User]:
     user = await user_repository.get_user_by_username(username)
     return user
 

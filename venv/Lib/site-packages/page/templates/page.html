@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>{% block title %}{{ page.title }}{% if page.author %} by {{ page.author }}{% endif %} - {{ site_name }}{% endblock %}</title>
+<meta name="description" content="{% block desc %}{{ desc }}{% endblock %}">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<style>
+body{font-family:Helvetica,sans-serif;margin:0}
+header,main,footer{padding:2em}
+header{background:darkslategray} header a{color:white;text-decoration:none}
+h1{margin-top:0} main{max-width:60em}
+</style>
+{% block head %}
+<link rel="canonical" href="{{ page.get_absolute_url|safe }}">
+<link rel="alternate" href="/feed.xml" type="application/rss+xml" title="RSS">
+{% endblock %}
+</head>
+<body class="{% block body_class %}page page__{{ page.slug }}{% endblock %}">
+<header><a href="/">{{ site_name }}</a></header>
+<main class="content">
+{% block breadcrumb %}
+{% if page.parent %}
+    <div class="breadcrumb" itemprop="breadcrumb">
+		<a href="/">Home</a> ›
+        <a href="/{{ page.parent|safe }}">{{ page.parent }}</a> ›
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<h1>{{ page.title }}</h1>
+{% if page.author %}
+    <div class="author">By <b>{{ page.author }}</b></div>
+{% endif %}
+{% if page.slug == 'this' %}<!--example to override--> {% endif %}
+{{ page.body|safe }}
+{% include 'nav.html' %}
+{% if dev %}<p><a href="{{ repo_url|safe }}{{ page.rel_source_path|safe }}">edit</a>{% endif %}
+{% endblock %}
+</main>
+<footer><p>&copy; {{ site_name }}</footer>
+</body>
+</html>

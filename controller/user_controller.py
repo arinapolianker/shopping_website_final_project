@@ -4,7 +4,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from starlette import status
 
-from controller import auth_controller
 from exceptions.security_exceptions import token_exception
 from model.user_request import UserRequest
 from model.user_response import UserResponse
@@ -20,25 +19,13 @@ oauth2_bearer = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 
 @router.get("/{user_id}", status_code=status.HTTP_200_OK)
-# async def get_user_by_id(user_id, token: str = Depends(oauth2_bearer)):
-    # user_response = await auth_service.validate_user(token)
-    # if user_response is None:
-    #     raise token_exception()
-    # else:
-    #     return await user_service.get_user_by_id(user_response.id)
-async def get_user_by_id(user: UserResponse = Depends(auth_service.validate_user),
-                         user_id: int = Path(gt=0)):
+async def get_user_by_id(user: UserResponse = Depends(auth_service.validate_user), user_id: int = Path(gt=0)):
     if user is None:
         raise token_exception()
     return await user_service.get_user_by_id(user_id)
 
 
 @router.get("/", status_code=status.HTTP_200_OK)
-# async def get_all_users(token: str = Depends(oauth2_bearer)):
-#     user_response = await auth_service.validate_user(token)
-#     if user_response is None:
-#         raise token_exception()
-#     return await user_service.get_all_users()
 async def get_users(user: UserResponse = Depends(auth_service.validate_user)):
     if user is None:
         raise token_exception()
@@ -79,4 +66,3 @@ async def delete_user_by_id(user_id: int, token: str = Depends(oauth2_bearer)):
     if not user_exists:
         raise HTTPException(status_code=404, detail=f"Can't delete user with id:{user_id}, user not found...")
     await user_service.delete_user_by_id(user_id)
-

@@ -74,6 +74,8 @@ VALUES
     ('Gaming Speaker System', 89.99, 20),
     ('Compact Desktop Speaker', 44.99, 25),
     ('Wireless Earbuds with Speaker', 84.90, 50),
-    ('Vintage Style Wooden Speaker', 99.99, 10);
+    ('Vintage Style Wooden Speaker', 99.99, 10),
+    ('Eco Speaker System', 29.99, 0),
+    ('Camping Speaker', 41.50, 2);
 
 

@@ -28,15 +28,14 @@ st.title("My Orders🛍️")
 
 
 def display_order_summary(order_summary):
-    if not temp_order:
-        st.success("Your order has been placed! 🎉")
-        st.markdown("### Order Summary")
-        for summary_item in order_summary['item']:
-            st.markdown(f"- **{summary_item['name']}**: {summary_item['quantity']} x ${summary_item['price']:.2f}")
-        st.markdown(f"**Total Price:** ${order_summary['total_price']:.2f}")
-        st.markdown(f"**Shipping Address:** {order_summary['shipping_address']}")
-        st.markdown(f"**Order Number:** {order_summary['order_number']}")
-        st.markdown(f"**Order Date:** {order_summary['order_date']}")
+    st.success("Your order has been placed! 🎉")
+    st.markdown("### Order Summary")
+    for summary_item in order_summary['item']:
+        st.markdown(f"- **{summary_item['name']}**: {summary_item['quantity']} x ${summary_item['price']:.2f}")
+    st.markdown(f"**Total Price:** ${order_summary['total_price']:.2f}")
+    st.markdown(f"**Shipping Address:** {order_summary['shipping_address']}")
+    st.markdown(f"**Order Number:** {order_summary['order_number']}")
+    st.markdown(f"**Order Date:** {order_summary['order_date']}")
 
 
 def display_pending_order(temp_order_data):
@@ -60,6 +59,18 @@ def display_pending_order(temp_order_data):
                         unsafe_allow_html=True)
         with col2:
             quantity_key = f"quantity_{item_id}"
+            if quantity_key in st.session_state:
+                new_quantity = st.session_state[quantity_key]
+                if new_quantity != quantity and new_quantity <= available_quantity:
+                    if new_quantity == 0:
+                        delete_item_from_order(temp_order['id'], item_id)
+                        st.session_state.order_quantities[str(item_id)] = 0
+                        del st.session_state[quantity_key]
+                        st.rerun()
+                    else:
+                        update_temp_order_quantities(user_id, item_id, new_quantity)
+                        st.session_state.order_quantities[str(item_id)] = new_quantity
+                        st.rerun()
             new_quantity = st.number_input(
                 f"Quantity for {order_item['name']}",
                 min_value=0,
@@ -68,12 +79,6 @@ def display_pending_order(temp_order_data):
                 key=quantity_key,
                 step=1,
             )
-            if new_quantity != quantity and new_quantity <= available_quantity:
-                if new_quantity == 0:
-                    delete_item_from_order(temp_order['id'], item_id)
-                    st.rerun()
-                else:
-                    update_temp_order_quantities(user_id, item_id, new_quantity)
 
         with col3:
             item_total_price = order_item['price'] * new_quantity
@@ -83,7 +88,6 @@ def display_pending_order(temp_order_data):
             if st.button(f"🗑️ Remove {order_item['name']}", key=f"remove_{item_id}"):
                 delete_item_from_order(temp_order['id'], item_id)
                 st.session_state.temp_order = get_temp_order(user_id)
-                print("Updated temp_order:", st.session_state.temp_order)
                 st.success(f"{order_item['name']} removed from your order!")
                 st.rerun()
         st.markdown("---")
@@ -131,30 +135,25 @@ def display_pending_order(temp_order_data):
 try:
     temp_order = get_temp_order(user_id)
     user_orders = get_order_by_user_id(user_id)
-
-    if not temp_order or temp_order.get('status_code') == 404:
-        st.info("Your cart order is currently empty.")
-        st.session_state.temp_order = None
-        st.session_state.order_quantities = {}
-        st.session_state.total_price = 0.0
-    else:
-        st.session_state['temp_order'] = temp_order
-        st.session_state['order_quantities'] = temp_order.get('item_quantities', {})
-        st.session_state.total_price = temp_order.get('total_price', 0.0)
-
 except Exception as e:
     st.error(f"Error fetching items: {e}")
     temp_order = None
     user_orders = None
 
-if temp_order:
-    st.session_state.temp_order = temp_order
-    st.session_state.order_quantities = temp_order.get('item_quantities', {})
-    st.session_state.total_price = temp_order.get('total_price', 0.0)
-    display_pending_order(temp_order)
-
 if st.session_state.get("order_summary"):
     display_order_summary(st.session_state['order_summary'])
+    st.session_state["order_summary"] = None
+
+if not temp_order or temp_order.get('status_code') == 404:
+    st.info("Your cart order is currently empty.")
+    st.session_state.temp_order = None
+    st.session_state.order_quantities = {}
+    st.session_state.total_price = 0.0
+else:
+    st.session_state['temp_order'] = temp_order
+    st.session_state['order_quantities'] = temp_order.get('item_quantities', {})
+    st.session_state.total_price = temp_order.get('total_price', 0.0)
+    display_pending_order(temp_order)
 
 
 st.markdown("### 🔵 Orders History")
@@ -168,4 +167,3 @@ if user_orders:
                 st.markdown(f"**Shipping Address:** {order['shipping_address']}")
 else:
     st.info("You have no closed orders yet.")
-

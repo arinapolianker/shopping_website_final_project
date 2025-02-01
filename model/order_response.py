@@ -3,7 +3,6 @@ from typing import List
 
 from pydantic import BaseModel
 
-from model.item import Item
 from model.order_item_detail import OrderItemDetail
 from model.order_status import OrderStatus
 
