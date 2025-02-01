@@ -4,3 +4,5 @@ venv/
 resources/local-ssm.json
 External Libraries/
 **/__init__.py
+*.pyc
+__pycache__/
