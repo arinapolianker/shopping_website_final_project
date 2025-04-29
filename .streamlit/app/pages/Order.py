@@ -2,6 +2,9 @@ import streamlit as st
 
 get_jwt_token = st.session_state.functions['get_jwt_token']
 user_id = st.session_state.get('user_id')
+token = st.session_state.get('jwt_token')
+st.write("Token:", token)
+st.write("User ID:", user_id)
 
 get_temp_order = st.session_state.functions['get_temp_order']
 get_order_by_id = st.session_state.functions['get_order_by_id']
@@ -63,12 +66,12 @@ def display_pending_order(temp_order_data):
                 new_quantity = st.session_state[quantity_key]
                 if new_quantity != quantity and new_quantity <= available_quantity:
                     if new_quantity == 0:
-                        delete_item_from_order(temp_order['id'], item_id)
+                        delete_item_from_order(temp_order['id'], item_id, token)
                         st.session_state.order_quantities[str(item_id)] = 0
                         del st.session_state[quantity_key]
                         st.rerun()
                     else:
-                        update_temp_order_quantities(user_id, item_id, new_quantity)
+                        update_temp_order_quantities(user_id, item_id, new_quantity, token)
                         st.session_state.order_quantities[str(item_id)] = new_quantity
                         st.rerun()
             new_quantity = st.number_input(
@@ -86,8 +89,8 @@ def display_pending_order(temp_order_data):
             st.markdown(f"**${item_total_price:.2f}**")
         with col4:
             if st.button(f"🗑️ Remove {order_item['name']}", key=f"remove_{item_id}"):
-                delete_item_from_order(temp_order['id'], item_id)
-                st.session_state.temp_order = get_temp_order(user_id)
+                delete_item_from_order(temp_order['id'], item_id, token)
+                st.session_state.temp_order = get_temp_order(user_id, token)
                 st.success(f"{order_item['name']} removed from your order!")
                 st.rerun()
         st.markdown("---")
@@ -111,7 +114,7 @@ def display_pending_order(temp_order_data):
                         f"The following items have insufficient stock: {', '.join(insufficient_stock)}"
                     )
                 else:
-                    close_order(temp_order_data['id'], shipping_address, user_id)
+                    close_order(temp_order_data['id'], shipping_address, user_id, token)
                     finished_order = get_order_by_id(temp_order_data['id'])
                     st.session_state.update({
                         'order_summary': {
@@ -133,8 +136,8 @@ def display_pending_order(temp_order_data):
 
 
 try:
-    temp_order = get_temp_order(user_id)
-    user_orders = get_order_by_user_id(user_id)
+    temp_order = get_temp_order(user_id, token)
+    user_orders = get_order_by_user_id(user_id, token)
 except Exception as e:
     st.error(f"Error fetching items: {e}")
     temp_order = None

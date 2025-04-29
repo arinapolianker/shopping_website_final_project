@@ -113,28 +113,32 @@ def get_all_items():
     return response.json()
 
 
-def add_item_to_favorite_items(user_id, item_id):
+def add_item_to_favorite_items(user_id, item_id, token):
     url = f"{BASE_URL}/favorite_item/"
     payload = {"user_id": user_id, "item_id": item_id}
-    response = requests.post(url, json=payload)
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.post(url, json=payload, headers=headers)
     response.raise_for_status()
     return response.json()
 
 
-def get_favorite_items_by_user_id(user_id):
+def get_favorite_items_by_user_id(user_id, token):
     url = f"{BASE_URL}/favorite_item/user/{user_id}"
-    response = requests.get(url)
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(url, headers=headers)
     return response.json()
 
 
-def delete_favorite_item(user_id, item_id):
+def delete_favorite_item(user_id, item_id, token):
     url = f"{BASE_URL}/favorite_item/{user_id}/item/{item_id}"
-    response = requests.delete(url)
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.delete(url, headers=headers)
     response.raise_for_status()
 
 
-def create_order(user_id, shipping_address, item_quantities, total_price, status="TEMP"):
+def create_order(user_id, token, shipping_address, item_quantities, total_price, status="TEMP"):
     url = f"{BASE_URL}/order/"
+    headers = {"Authorization": f"Bearer {token}"}
     payload = {
         "user_id": user_id,
         "shipping_address": shipping_address,
@@ -142,40 +146,43 @@ def create_order(user_id, shipping_address, item_quantities, total_price, status
         "total_price": total_price,
         "status": status
     }
-    response = requests.post(url, json=payload)
+    response = requests.post(url, json=payload, headers=headers)
     response.raise_for_status()
     return response.json()
 
 
-def update_temp_order_quantities(user_id, item_id, quantity):
+def update_temp_order_quantities(user_id, item_id, quantity, token):
     url = f"{BASE_URL}/order/update_order_quantities/"
+    headers = {"Authorization": f"Bearer {token}"}
     payload = {
         "user_id": user_id,
         "item_id": item_id,
         "quantity": quantity
     }
-    response = requests.put(url, json=payload)
+    response = requests.put(url, json=payload, headers=headers)
     response.raise_for_status()
     return response.json()
 
 
-def close_order(order_id, shipping_address, user_id):
+def close_order(order_id, shipping_address, user_id, token):
     url = f"{BASE_URL}/order/purchase/{order_id}"
+    headers = {"Authorization": f"Bearer {token}"}
     payload = {
         "order_id": order_id,
         "user_id": user_id,
         "shipping_address": shipping_address,
         "status": "CLOSE",
     }
-    response = requests.put(url, json=payload)
+    response = requests.put(url, json=payload, headers=headers)
     response.raise_for_status()
     return response.json()
 
 
 @st.cache_resource(ttl=30)
-def get_order_by_user_id(user_id):
+def get_order_by_user_id(user_id, token):
     url = f"{BASE_URL}/order/user/{user_id}"
-    response = requests.get(url)
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(url, headers=headers)
     response.raise_for_status()
     return response.json()
 
@@ -187,15 +194,17 @@ def get_order_by_id(order_id):
     return response.json()
 
 
-@st.cache_resource(ttl=2)
-def get_temp_order(user_id):
+# @st.cache_resource(ttl=2)
+def get_temp_order(user_id, token):
     url = f"{BASE_URL}/order/temp/{user_id}"
-    response = requests.get(url)
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(url, headers=headers)
     response.raise_for_status()
     return response.json()
 
 
-def delete_item_from_order(order_id, item_id):
+def delete_item_from_order(order_id, item_id, token):
     url = f"{BASE_URL}/order/{order_id}/item/{item_id}"
-    response = requests.delete(url)
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.delete(url, headers=headers)
     response.raise_for_status()

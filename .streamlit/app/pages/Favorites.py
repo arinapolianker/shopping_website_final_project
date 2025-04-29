@@ -11,6 +11,7 @@ create_order = st.session_state.functions['create_order']
 update_temp_order_quantities = st.session_state.functions['update_temp_order_quantities']
 
 user_id = st.session_state.get('user_id')
+token = st.session_state.get("jwt_token")
 
 if "jwt_token" not in st.session_state or not st.session_state.jwt_token:
     st.warning("You must be logged in to view this page.")
@@ -28,7 +29,7 @@ st.set_page_config(
 st.title(" My Favorites❤️")
 
 try:
-    favorite_items = get_favorite_items_by_user_id(user_id)
+    favorite_items = get_favorite_items_by_user_id(user_id, token)
     if favorite_items:
         st.session_state.favorite_items = favorite_items
     else:
@@ -55,13 +56,13 @@ if favorite_items:
                 with col1:
                     if st.button("🛒 Add to Cart", key=f"add_{i}", disabled=item['item_stock'] == 0):
                         st.session_state["order_summary"] = None
-                        temp_order = get_temp_order(user_id)
+                        temp_order = get_temp_order(user_id, token)
                         if not temp_order or "item" not in temp_order or not temp_order["item"]:
                             st.session_state.temp_order = None
                             shipping_address = st.session_state.get("user_address", "Default Address")
                             item_quantities = {item["id"]: 1}
                             total_price = item["price"]
-                            create_order(user_id, shipping_address, item_quantities, total_price, 'TEMP')
+                            create_order(user_id, shipping_address, item_quantities, total_price, 'TEMP', token)
                             st.session_state.order_quantities = item_quantities
                             st.success(f"{item['name']} added to your order!")
 
@@ -77,14 +78,14 @@ if favorite_items:
                                     st.warning(
                                         f"Cannot add more '{item['name']}' to your order. Only {item['item_stock']} are available.")
                                 else:
-                                    update_temp_order_quantities(user_id, item_id, new_quantity)
+                                    update_temp_order_quantities(user_id, item_id, new_quantity, token)
                                     st.success(f"'{item['name']}' quantity updated in your order!")
                             else:
-                                update_temp_order_quantities(user_id, item_id, 1)
+                                update_temp_order_quantities(user_id, item_id, 1, token)
                                 st.success(f"'{item['name']}' added to your order!")
                 with col2:
                     if st.button("🗑️ Remove", key=f"remove_{i}"):
-                        delete_favorite_item(user_id, item["id"])
+                        delete_favorite_item(user_id, item["id"], token)
                         st.success(f"Removed '{item['name']}' from favorites.")
                         time.sleep(4)
                         st.rerun()

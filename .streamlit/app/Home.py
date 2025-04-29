@@ -49,6 +49,7 @@ except Exception as e:
 
 st.markdown("## 🔍 Search Products")
 search_col1, search_col2 = st.columns([8, 1])
+clear_filters = False
 
 with search_col1:
     search_by_name = st.text_input(
@@ -60,6 +61,7 @@ with search_col1:
 with search_col2:
     if st.button("Clear🔄", use_container_width=True, type="secondary"):
         search_by_name = ""
+        clear_filters = True
 
 col1, col2 = st.columns(2)
 with col1:
@@ -87,17 +89,20 @@ for term in search_terms:
             if operator in [">", "<", "="] and value.isdigit():
                 adv_stock_operator, adv_stock_value = operator, int(value)
 
-filtered_items = fetch_filtered_items(
-    name=search_by_name,
-    stock_filter=(adv_stock_operator, adv_stock_value) if adv_stock_operator != "None" else None,
-    price_filter=(adv_price_operator, adv_price_value) if adv_price_operator != "None" else None,
-)
+if clear_filters:
+    filtered_items = fetch_filtered_items()
+else:
+    filtered_items = fetch_filtered_items(
+        name=search_by_name,
+        stock_filter=(adv_stock_operator, adv_stock_value) if adv_stock_operator != "None" else None,
+        price_filter=(adv_price_operator, adv_price_value) if adv_price_operator != "None" else None,
+    )
 
-filtered_items = [
-    item for item in filtered_items
-    if (price_filter[0] <= item["price"] <= price_filter[1]) and
-       (stock_filter[0] <= item["item_stock"] <= stock_filter[1])
-]
+    filtered_items = [
+        item for item in filtered_items
+        if (price_filter[0] <= item["price"] <= price_filter[1]) and
+           (stock_filter[0] <= item["item_stock"] <= stock_filter[1])
+    ]
 
 if filtered_items:
     st.markdown("### Available Items")
@@ -122,7 +127,10 @@ if filtered_items:
                     if st.button("Add to order🛒", key=f"order_{i}", use_container_width=True, disabled=item['item_stock'] == 0):
                         if 'jwt_token' in st.session_state and st.session_state['jwt_token']:
                             user_id = st.session_state.get("user_id")
-                            temp_order = get_temp_order(user_id)
+                            token = st.session_state.get("jwt_token")
+                            temp_order = get_temp_order(user_id, token)
+                            st.write("Token:", token)
+                            st.write("User ID:", user_id)
                             st.session_state["order_summary"] = None
                             if item["item_stock"] == 0:
                                 st.warning(f"Can't add '{item['name']}' to order, Item sold out.")
@@ -148,10 +156,10 @@ if filtered_items:
                                             st.warning(
                                                 f"Cannot add more '{item['name']}' to your order. Only {item['item_stock']} are available.")
                                         else:
-                                            update_temp_order_quantities(user_id, item_id, new_quantity)
+                                            update_temp_order_quantities(user_id, item_id, new_quantity, token)
                                             st.success(f"'{item['name']}' quantity updated in your order!")
                                     else:
-                                        update_temp_order_quantities(user_id, item_id, 1)
+                                        update_temp_order_quantities(user_id, item_id, 1, token)
                                         st.success(f"'{item['name']}' added to your order!")
                         else:
                             st.warning("Please log in to add items to your order.")
@@ -160,12 +168,13 @@ if filtered_items:
                     if st.button("Add to favorites❤️", key=f"favorite_{i}", use_container_width=True):
                         if 'jwt_token' in st.session_state and st.session_state['jwt_token']:
                             user_id = st.session_state.get("user_id")
-                            favorite_items = get_favorite_items_by_user_id(user_id)
+                            token = st.session_state.get("jwt_token")
+                            favorite_items = get_favorite_items_by_user_id(user_id, token)
 
                             if any(favorite_item['item']['id'] == item['id'] for favorite_item in favorite_items):
                                 st.error(f"You already added '{item['name']}' to your favorite item list")
                             else:
-                                add_item_to_favorite_items(user_id, item['id'])
+                                add_item_to_favorite_items(user_id, item['id'], token)
                                 st.success(f"{item['name']} was Added to favorite items!")
                                 st.session_state["favorite_items_updated"] = True
                         else:

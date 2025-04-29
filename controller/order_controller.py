@@ -1,7 +1,8 @@
 from typing import List, Optional
 
-from fastapi import HTTPException, APIRouter
+from fastapi import HTTPException, APIRouter, Depends
 
+from exceptions.security_exceptions import token_exception
 from model.order import Order
 from model.order_close import OrderClose
 from model.order_item_quantity import OrderItemQuantity
@@ -9,7 +10,8 @@ from model.order_request import OrderRequest
 from model.order_response import OrderResponse
 from model.order_status import OrderStatus
 from repository import order_repository, order_item_repository
-from service import order_service, user_service
+from service import order_service, user_service, auth_service
+from service.auth_service import oauth2_bearer
 
 router = APIRouter(
     prefix="/order",
@@ -23,7 +25,10 @@ async def get_order_by_id(order_id: int) -> Optional[OrderResponse]:
 
 
 @router.get("/user/{user_id}")
-async def get_order_by_user_id(user_id: int):
+async def get_order_by_user_id(user_id: int, token: str = Depends(oauth2_bearer)):
+    user_response = await auth_service.validate_user(token)
+    if user_response is None:
+        raise token_exception()
     user = await user_service.get_user_by_id(user_id)
     if not user:
         raise HTTPException(status_code=404, detail=f"User with id:{user_id} not found...")
@@ -37,7 +42,10 @@ async def get_order_by_user_id(user_id: int):
 
 
 @router.get("/temp/{user_id}")
-async def get_temp_order(user_id: int):
+async def get_temp_order(user_id: int, token: str = Depends(oauth2_bearer)):
+    user_response = await auth_service.validate_user(token)
+    if user_response is None:
+        raise token_exception()
     try:
         user = await user_service.get_user_by_id(user_id)
         if not user:
@@ -61,7 +69,10 @@ async def get_all_orders():
 
 
 @router.post("/")
-async def create_order(order_request: OrderRequest):
+async def create_order(order_request: OrderRequest, token: str = Depends(oauth2_bearer)):
+    user_response = await auth_service.validate_user(token)
+    if user_response is None:
+        raise token_exception()
     try:
         return await order_service.create_order(order_request)
     except Exception as e:
@@ -69,7 +80,10 @@ async def create_order(order_request: OrderRequest):
 
 
 @router.put("/{order_id}")
-async def update_order(order_id: int, order_request: OrderRequest):
+async def update_order(order_id: int, order_request: OrderRequest, token: str = Depends(oauth2_bearer)):
+    user_response = await auth_service.validate_user(token)
+    if user_response is None:
+        raise token_exception()
     try:
         order = await order_repository.get_order_by_id(order_id)
         if not order:
@@ -83,7 +97,10 @@ async def update_order(order_id: int, order_request: OrderRequest):
 
 
 @router.put("/update_order_quantities/")
-async def update_temp_order_quantities(request: OrderItemQuantity):
+async def update_temp_order_quantities(request: OrderItemQuantity, token: str = Depends(oauth2_bearer)):
+    user_response = await auth_service.validate_user(token)
+    if user_response is None:
+        raise token_exception()
     try:
         await order_service.update_temp_order(request.user_id, request.item_id, request.quantity)
     except ValueError as e:
@@ -93,7 +110,10 @@ async def update_temp_order_quantities(request: OrderItemQuantity):
 
 
 @router.put("/purchase/{order_id}")
-async def update_order_status(request: OrderClose):
+async def update_order_status(request: OrderClose, token: str = Depends(oauth2_bearer)):
+    user_response = await auth_service.validate_user(token)
+    if user_response is None:
+        raise token_exception()
     try:
         order = await order_service.get_order_by_id(request.order_id)
         if not order:
@@ -107,7 +127,10 @@ async def update_order_status(request: OrderClose):
 
 
 @router.delete("/{order_id}")
-async def delete_order_by_id(order_id: int):
+async def delete_order_by_id(order_id: int, token: str = Depends(oauth2_bearer)):
+    user_response = await auth_service.validate_user(token)
+    if user_response is None:
+        raise token_exception()
     try:
         order = await order_service.get_order_by_id(order_id)
         if not order:
@@ -118,7 +141,10 @@ async def delete_order_by_id(order_id: int):
 
 
 @router.delete("/{order_id}/item/{item_id}")
-async def delete_item_from_order(order_id: int, item_id: int):
+async def delete_item_from_order(order_id: int, item_id: int, token: str = Depends(oauth2_bearer)):
+    user_response = await auth_service.validate_user(token)
+    if user_response is None:
+        raise token_exception()
     try:
         order = await order_service.get_order_by_id(order_id)
         if not order:

@@ -1,12 +1,14 @@
 from typing import List, Optional
 
-from fastapi import HTTPException, APIRouter
+from fastapi import HTTPException, APIRouter, Depends
 
+from exceptions.security_exceptions import token_exception
 from model.favorite_item import FavoriteItem
 from model.favorite_item_request import FavoriteItemRequest
 from model.favorite_item_response import FavoriteItemResponse
 from repository import favorite_item_repository
-from service import favorite_item_service, user_service
+from service import favorite_item_service, user_service, auth_service
+from service.auth_service import oauth2_bearer
 
 router = APIRouter(
     prefix="/favorite_item",
@@ -23,7 +25,10 @@ async def get_by_id(favorite_item_id: int) -> Optional[FavoriteItem]:
 
 
 @router.get("/user/{user_id}", response_model=List[FavoriteItemResponse])
-async def get_favorite_items_by_user_id(user_id: int) -> List[FavoriteItemResponse]:
+async def get_favorite_items_by_user_id(user_id: int, token: str = Depends(oauth2_bearer)) -> List[FavoriteItemResponse]:
+    user_response = await auth_service.validate_user(token)
+    if user_response is None:
+        raise token_exception()
     user = await user_service.get_user_by_id(user_id)
     if not user:
         raise HTTPException(status_code=404, detail=f"User with id:{user_id} not found...")
@@ -36,15 +41,21 @@ async def get_all_favorite_items() -> List[FavoriteItem]:
 
 
 @router.post("/")
-async def create_favorite_items(favorite_item_request: FavoriteItemRequest):
+async def create_favorite_items(favorite_item_request: FavoriteItemRequest, token: str = Depends(oauth2_bearer)):
     try:
+        user_response = await auth_service.validate_user(token)
+        if user_response is None:
+            raise token_exception()
         return await favorite_item_service.create_favorite_item(favorite_item_request)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.put("/{favorite_item_id}", response_model=Optional[FavoriteItem])
-async def update_favorite_items(favorite_item_id: int, favorite_item: FavoriteItem):
+async def update_favorite_items(favorite_item_id: int, favorite_item: FavoriteItem, token: str = Depends(oauth2_bearer)):
+    user_response = await auth_service.validate_user(token)
+    if user_response is None:
+        raise token_exception()
     favorite_item_exists = await favorite_item_service.get_by_id(favorite_item_id)
     if not favorite_item_exists:
         raise HTTPException(status_code=404, detail=f"Can't update favorite item with id:{favorite_item_id}, favorite item not found...")
@@ -61,7 +72,10 @@ async def delete_by_id(favorite_item_id: int):
 
 
 @router.delete("/{user_id}/item/{item_id}")
-async def delete_by_user_and_item_id(user_id: int, item_id: int):
+async def delete_by_user_and_item_id(user_id: int, item_id: int, token: str = Depends(oauth2_bearer)):
+    user_response = await auth_service.validate_user(token)
+    if user_response is None:
+        raise token_exception()
     favorite_item_exists = await favorite_item_repository.get_favorite_item_by_user_and_item(user_id, item_id)
     if not favorite_item_exists:
         raise HTTPException(status_code=404, detail=f"Can't delete favorite item for the user. favorite item not found...")
