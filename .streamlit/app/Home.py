@@ -3,7 +3,7 @@ import streamlit as st
 from api.api import get_all_items, register_user, get_jwt_token, add_item_to_favorite_items, \
     get_favorite_items_by_user_id, delete_favorite_item, create_order, close_order, \
     delete_item_from_order, get_temp_order, update_temp_order_quantities, \
-    get_user, get_order_by_id, delete_user_by_id, logout_user, get_order_by_user_id, fetch_filtered_items
+    get_user, get_order_by_id, delete_user_by_id, logout_user, get_order_by_user_id, fetch_filtered_items, get_answer
 
 st.set_page_config(
     page_title="Speakers Web-Shop",
@@ -28,7 +28,8 @@ if 'functions' not in st.session_state:
         'get_order_by_user_id': get_order_by_user_id,
         'get_temp_order': get_temp_order,
         'close_order': close_order,
-        'delete_item_from_order': delete_item_from_order
+        'delete_item_from_order': delete_item_from_order,
+        'get_answer': get_answer
     }
 
 if 'jwt_token' not in st.session_state:
@@ -129,19 +130,16 @@ if filtered_items:
                             user_id = st.session_state.get("user_id")
                             token = st.session_state.get("jwt_token")
                             temp_order = get_temp_order(user_id, token)
-                            st.write("Token:", token)
-                            st.write("User ID:", user_id)
                             st.session_state["order_summary"] = None
                             if item["item_stock"] == 0:
                                 st.warning(f"Can't add '{item['name']}' to order, Item sold out.")
                             else:
                                 if not temp_order or "item" not in temp_order:
                                     shipping_address = st.session_state.get("user_address", "Default Address")
-                                    item_quantities = {item["id"]: 1}
-                                    total_price = sum(
-                                        item["price"] * quantity for item_id, quantity in item_quantities.items())
-                                    create_order(user_id, shipping_address, item_quantities, total_price, 'TEMP')
-                                    st.session_state.order_quantities = item_quantities
+                                    order_items = [{"item_id": item["id"], "quantity": 1}]
+                                    total_price = item["price"]
+                                    create_order(user_id, token, shipping_address, order_items, total_price, 'TEMP')
+                                    st.session_state.order_quantities = {str(item["id"]): 1}
                                     st.success(f"{item['name']} added to your order!")
 
                                 else:
@@ -157,28 +155,85 @@ if filtered_items:
                                                 f"Cannot add more '{item['name']}' to your order. Only {item['item_stock']} are available.")
                                         else:
                                             update_temp_order_quantities(user_id, item_id, new_quantity, token)
+                                            st.session_state.order_quantities[str(item_id)] = new_quantity
                                             st.success(f"'{item['name']}' quantity updated in your order!")
                                     else:
                                         update_temp_order_quantities(user_id, item_id, 1, token)
+                                        st.session_state.order_quantities[str(item_id)] = 1
                                         st.success(f"'{item['name']}' added to your order!")
                         else:
                             st.warning("Please log in to add items to your order.")
-
                 with col2:
-                    if st.button("Add to favorites❤️", key=f"favorite_{i}", use_container_width=True):
-                        if 'jwt_token' in st.session_state and st.session_state['jwt_token']:
-                            user_id = st.session_state.get("user_id")
-                            token = st.session_state.get("jwt_token")
-                            favorite_items = get_favorite_items_by_user_id(user_id, token)
+                    if 'jwt_token' in st.session_state and st.session_state['jwt_token']:
+                        user_id = st.session_state.get("user_id")
+                        token = st.session_state.get("jwt_token")
 
-                            if any(favorite_item['item']['id'] == item['id'] for favorite_item in favorite_items):
-                                st.error(f"You already added '{item['name']}' to your favorite item list")
-                            else:
-                                add_item_to_favorite_items(user_id, item['id'], token)
-                                st.success(f"{item['name']} was Added to favorite items!")
-                                st.session_state["favorite_items_updated"] = True
+                        # Only fetch favorite items once or when updated
+                        if 'favorite_items' not in st.session_state or st.session_state.get("favorite_items_updated",
+                                                                                            False):
+                            try:
+                                favorite_items = get_favorite_items_by_user_id(user_id, token)
+                                st.session_state["favorite_items"] = favorite_items
+                                st.session_state["favorite_items_updated"] = False
+                            except Exception as e:
+                                st.error(f"Failed to fetch favorite items: {e}")
+                                favorite_items = []
                         else:
+                            favorite_items = st.session_state["favorite_items"]
+
+                        # Check if item is already in favorites
+                        already_favorite = any(fav["item"]["id"] == item["id"] for fav in favorite_items)
+
+                        if already_favorite:
+                            st.button("Already In Favorites ❤️", key=f"favorite_{i}_disabled", use_container_width=True,
+                                      disabled=True)
+                        else:
+                            if st.button("Add to Favorites ❤️", key=f"favorite_{i}", use_container_width=True):
+                                try:
+                                    add_item_to_favorite_items(user_id, item['id'], token)
+                                    st.success(f"{item['name']} was added to your favorite items!")
+                                    st.session_state["favorite_items_updated"] = True
+                                except Exception as e:
+                                    st.error(f"Failed to add favorite: {e}")
+
+                    else:
+                        # For non-logged-in users
+                        if st.button("Add to Favorites ❤️", key=f"favorite_{i}", use_container_width=True):
                             st.warning("Please log in to add items to your favorites list.")
+                # with col2:
+                #     already_favorite = False
+                #     if 'jwt_token' in st.session_state and st.session_state['jwt_token']:
+                #         user_id = st.session_state.get("user_id")
+                #         token = st.session_state.get("jwt_token")
+                #         favorite_items = get_favorite_items_by_user_id(user_id, token)
+                #         already_favorite = any(fav['item']['id'] == item['id'] for fav in favorite_items)
+                #
+                #     if already_favorite:
+                #         st.info(f"'{item['name']}' is already in your favorites ❤️")
+                #         st.button("Already in Favorites", disabled=True, key=f"favorite_{i}_disabled",
+                #                   use_container_width=True)
+                #     else:
+                #         if st.button("Add to favorites❤️", key=f"favorite_{i}", use_container_width=True):
+                #             if user_id and token:
+                #                 add_item_to_favorite_items(user_id, item['id'], token)
+                #                 st.success(f"{item['name']} was added to your favorite items!")
+                #                 st.session_state["favorite_items_updated"] = True
+                #             else:
+                #                 st.warning("Please log in to add items to your favorites list.")
+                    # if st.button("Add to favorites❤️", key=f"favorite_{i}", use_container_width=True):
+                    #     if 'jwt_token' in st.session_state and st.session_state['jwt_token']:
+                    #         user_id = st.session_state.get("user_id")
+                    #         token = st.session_state.get("jwt_token")
+                    #         favorite_items = get_favorite_items_by_user_id(user_id, token)
+                    #
+                    #         if any(favorite_item['item']['id'] == item['id'] for favorite_item in favorite_items):
+                    #             st.error(f"You already added '{item['name']}' to your favorite item list")
+                    #         else:
+                    #             add_item_to_favorite_items(user_id, item['id'], token)
+                    #             st.success(f"{item['name']} was Added to favorite items!")
+                    #             st.session_state["favorite_items_updated"] = True
+                    #     else:
+                    #         st.warning("Please log in to add items to your favorites list.")
                 st.markdown("---")
 else:
     st.warning("No items available.")

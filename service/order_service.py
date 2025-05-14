@@ -5,6 +5,7 @@ from model.item import Item
 from model.order import Order
 from model.order_item import OrderItem
 from model.order_item_detail import OrderItemDetail
+from model.order_item_request import OrderItemRequest
 from model.order_request import OrderRequest
 from model.order_response import OrderResponse
 from model.order_status import OrderStatus
@@ -12,29 +13,28 @@ from repository import order_repository, item_repository, user_repository, order
 from service import item_service
 
 
-async def compute_total_price(item_quantities: Dict[int, int]) -> float:
+async def compute_total_price(items: List[OrderItemRequest]) -> float:
     total_price = 0
-    for item_id, quantity in item_quantities.items():
-        item = await item_repository.get_item_by_id(item_id)
+    for item_req in items:
+        item = await item_repository.get_item_by_id(item_req.item_id)
         if item:
-            total_price += item.price * quantity
+            total_price += item.price * item_req.quantity
     return total_price
 
 
-async def validate_item_quantities_and_stock(item_quantities: dict):
+async def validate_item_quantities_and_stock(items: List[OrderItemRequest]):
     invalid_items = []
     insufficient_stock_items = []
 
-    for item_id, quantity in item_quantities.items():
-        item_details = await item_repository.get_item_by_id(item_id)
-
+    for item_req in items:
+        item_details = await item_repository.get_item_by_id(item_req.item_id)
         if not item_details:
-            invalid_items.append(item_id)
-        elif quantity <= 0:
+            invalid_items.append(item_req.item_id)
+        elif item_req.quantity <= 0:
             invalid_items.append(item_details.name)
-        elif quantity > item_details.item_stock:
+        elif item_req.quantity > item_details.item_stock:
             insufficient_stock_items.append(
-                f"{item_details.name} (requested: {quantity}, available: {item_details.item_stock})"
+                f"{item_details.name} (requested: {item_req.quantity}, available: {item_details.item_stock})"
             )
 
     return invalid_items, insufficient_stock_items
@@ -162,14 +162,14 @@ async def create_order(order_request: OrderRequest):
             raise ValueError("You already have an open order.")
 
         invalid_items, insufficient_stock_items = await validate_item_quantities_and_stock(
-            order_request.item_quantities)
+            order_request.items)
 
         if invalid_items:
             raise ValueError(f"The following items are invalid: {', '.join(map(str, invalid_items))}.")
         if insufficient_stock_items:
             raise ValueError(f"Insufficient stock for items: {', '.join(insufficient_stock_items)}.")
 
-        total_price = await compute_total_price(order_request.item_quantities)
+        total_price = await compute_total_price(order_request.items)
 
         order = Order(
             user_id=order_request.user_id,
@@ -183,8 +183,8 @@ async def create_order(order_request: OrderRequest):
         if not order_id:
             raise ValueError("Failed to create order in the database.")
 
-        for item_id, quantity in order_request.item_quantities.items():
-            order_item = OrderItem(order_id=order_id, item_id=item_id, quantity=quantity)
+        for item_req in order_request.items:
+            order_item = OrderItem(order_id=order_id, item_id=item_req.item_id, quantity=item_req.quantity)
             await order_item_repository.create_order_items(order_item)
 
     except Exception as e:
@@ -203,14 +203,14 @@ async def update_order(order_id: int, order_request: OrderRequest):
     if order.status == OrderStatus.CLOSE:
         raise ValueError("Cannot update a closed order.")
 
-    invalid_items, insufficient_stock_items = await validate_item_quantities_and_stock(order_request.item_quantities)
+    invalid_items, insufficient_stock_items = await validate_item_quantities_and_stock(order_request.items)
 
     if invalid_items:
         raise ValueError(f"The following items are invalid: {', '.join(map(str, invalid_items))}.")
     if insufficient_stock_items:
         raise ValueError(f"Insufficient stock for items: {', '.join(insufficient_stock_items)}.")
 
-    total_price = await compute_total_price(order_request.item_quantities)
+    total_price = await compute_total_price(order_request.items)
 
     updated_order = Order(
         user_id=order_request.user_id,
@@ -221,12 +221,12 @@ async def update_order(order_id: int, order_request: OrderRequest):
     )
     await order_repository.update_order(order_id, updated_order)
 
-    for item_id, quantity in order_request.item_quantities.items():
-        existing_item = await order_item_repository.get_order_item(order_id, item_id)
-        order_item = OrderItem(order_id=order_id, item_id=item_id, quantity=quantity)
+    for item_req in order_request.items:
+        existing_item = await order_item_repository.get_order_item(order_id, item_req.item_id)
+        order_item = OrderItem(order_id=order_id, item_id=item_req.item_id, quantity=item_req.quantity)
         if existing_item:
-            if quantity == 0:
-                await delete_item_from_order(order_id, item_id)
+            if item_req.quantity == 0:
+                await delete_item_from_order(order_id, item_req.item_id)
             else:
                 await order_item_repository.update_order_item(order_id, order_item)
         else:
@@ -243,7 +243,7 @@ async def update_temp_order(user_id: int, item_id: int, quantity: int):
         raise ValueError("TEMP Order not found")
 
     if quantity > 0:
-        invalid_items, insufficient_stock_items = await validate_item_quantities_and_stock({item_id: quantity})
+        invalid_items, insufficient_stock_items = await validate_item_quantities_and_stock([OrderItemRequest(item_id=item_id, quantity=quantity)])
         if invalid_items or insufficient_stock_items:
             raise ValueError(f"Items '{invalid_items}' are invalid or the quantity is out of stock.")
 
@@ -261,9 +261,9 @@ async def update_temp_order(user_id: int, item_id: int, quantity: int):
     if not remaining_items:
         await order_repository.delete_order_by_id(temp_order.id)
 
-    order_items = await order_item_repository.get_order_items_by_order_id(temp_order.id)
-    updated_item_quantities = {item.item_id: item.quantity for item in order_items}
-    total_price = await compute_total_price(updated_item_quantities)
+    # order_items = await order_item_repository.get_order_items_by_order_id(temp_order.id)
+    # updated_item_quantities = {item.item_id: item.quantity for item in order_items}
+    total_price = await compute_total_price([OrderItemRequest(item_id=item_id, quantity=quantity)])
 
     await order_repository.update_temp_order(temp_order.id, total_price)
 
@@ -272,6 +272,9 @@ async def update_order_status(user_id: int, shipping_address: str, status: Order
     temp_order = await get_temp_order_by_user_id(user_id)
     if not temp_order:
         raise ValueError(f"Open order with ID {user_id} not found")
+
+    if not shipping_address.strip():
+        raise ValueError("Shipping address cannot be empty or whitespace.")
 
     date_close = date.today()
 

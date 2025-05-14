@@ -43,20 +43,33 @@ A full-stack e-commerce application built with FastAPI and Streamlit, featuring 
    git clone <repository-url>
    cd shopping_website_final_project
    ```
+   
+2. **Create and activate a virtual environment**
+   ```bash
+   # On Windows
+   python -m venv venv
+   venv\Scripts\activate
+   
+   # On macOS/Linux
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
 
-2. **Install Python dependencies**
+3. **Install Python dependencies**
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Set up environment variables**
-   - Create a `.env` file in the root directory
+4. **Configure your OpenAI API key**
+   - Open the config/config.py file
    - Add your OpenAI API key:
      ```
-     OPENAI_API_KEY=your_api_key_here
+     OPENAI_API_KEY = "your_api_key_here"
      ```
+   - ⚠️ IMPORTANT: This file is not included in the GitHub repository for security reasons. You must add your own API key to use the ChatGPT assistant functionality.
 
-4. **Start Docker containers**. Run these commands in sequence:
+
+5. **Start Docker containers**. Run these commands in sequence:
    ```bash
    # First, start the containers with the yaml configuration
     docker-compose -f docker-compose.yaml up
@@ -97,7 +110,7 @@ You can view and manage the database using Beekeeper Studio:
 ## 🤖 Using the ChatGPT Assistant
 
 1. Navigate to the Chat Assistant page in the Streamlit UI
-2. Enter your OpenAI API key in the sidebar
+2. Ensure your OpenAI API key is properly configured in config/config.py
 3. Start asking questions about products!
 
 ## 📁 Project Structure
@@ -108,6 +121,10 @@ shopping_website_final_project/
 │   └── app/
 │       ├── pages/
 │       └── Home.py
+├── api/
+│   └── externalApi/
+│       └── chatGPT/
+│           └── chat_gpt_api.py
 ├── config/
 │   └── config.py
 ├── controller/
@@ -146,6 +163,30 @@ shopping_website_final_project/
 
 ## 🛠 Troubleshooting
 
+- **Virtual Environment Issues**
+  - If you face issues with the virtual environment, deactivate and recreate it:
+    ```bash
+    # Deactivate current venv
+    deactivate
+
+    # Remove old venv
+    rm -rf venv  # On macOS/Linux
+    rmdir /s /q venv  # On Windows
+
+    # Create new venv and reinstall dependencies
+    python -m venv venv
+    source venv/bin/activate  # On macOS/Linux
+    venv\Scripts\activate  # On Windows
+    pip install -r requirements.txt
+    ```
+
+- **ChatGPT API Issues**
+  - If you're getting connection timeouts with the ChatGPT API:
+    - Verify your API key is correct
+    - Check your internet connection
+    - The API may be experiencing high traffic, try again later
+
+   
 - **Database Connection Issues**
   ```bash
   docker-compose down

@@ -5,6 +5,7 @@ from controller.item_controller import router as item_router
 from controller.order_controller import router as order_router
 from controller.favorite_item_controller import router as favorite_item_router
 from controller.auth_controller import router as auth_router
+from controller.chat_gpt_controller import router as chat_router
 
 
 app = FastAPI()
@@ -24,3 +25,4 @@ app.include_router(item_router)
 app.include_router(order_router)
 app.include_router(favorite_item_router)
 app.include_router(auth_router)
+app.include_router(chat_router)

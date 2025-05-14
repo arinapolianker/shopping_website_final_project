@@ -60,9 +60,12 @@ if favorite_items:
                         if not temp_order or "item" not in temp_order or not temp_order["item"]:
                             st.session_state.temp_order = None
                             shipping_address = st.session_state.get("user_address", "Default Address")
-                            item_quantities = {item["id"]: 1}
+                            # item_quantities = {item["id"]: 1}
+                            order_items = [{"item_id": item["id"], "quantity": 1}]
+                            # total_price = sum(
+                            #     item["price"] * quantity for item_id, quantity in item_quantities.items())
                             total_price = item["price"]
-                            create_order(user_id, shipping_address, item_quantities, total_price, 'TEMP', token)
+                            create_order(user_id, shipping_address, order_items, total_price, 'TEMP')
                             st.session_state.order_quantities = item_quantities
                             st.success(f"{item['name']} added to your order!")
 

@@ -3,8 +3,6 @@ import streamlit as st
 get_jwt_token = st.session_state.functions['get_jwt_token']
 user_id = st.session_state.get('user_id')
 token = st.session_state.get('jwt_token')
-st.write("Token:", token)
-st.write("User ID:", user_id)
 
 get_temp_order = st.session_state.functions['get_temp_order']
 get_order_by_id = st.session_state.functions['get_order_by_id']
@@ -49,7 +47,7 @@ def display_pending_order(temp_order_data):
         return
 
     st.markdown("### 🟢 Pending Order Summary")
-    total_price = 0.0
+    total_price = 0
 
     for order_item in temp_order_data['item']:
         item_id = order_item['item_id']
@@ -99,40 +97,39 @@ def display_pending_order(temp_order_data):
     shipping_address = st.text_input("Shipping Address", value=temp_order_data['shipping_address'])
 
     if st.button("Place Order", type="primary"):
-        if shipping_address:
-            if shipping_address:
-                insufficient_stock = []
-                for order_item in temp_order_data['item']:
-                    item_id = order_item['item_id']
-                    requested_quantity = st.session_state.order_quantities.get(str(item_id), order_item['quantity'])
-                    available_quantity = order_item['quantity']
-                    if requested_quantity > available_quantity:
-                        insufficient_stock.append(
-                            f"{order_item['name']} (requested: {requested_quantity}, available: {available_quantity})")
-                if insufficient_stock:
-                    st.warning(
-                        f"The following items have insufficient stock: {', '.join(insufficient_stock)}"
-                    )
-                else:
-                    close_order(temp_order_data['id'], shipping_address, user_id, token)
-                    finished_order = get_order_by_id(temp_order_data['id'])
-                    st.session_state.update({
-                        'order_summary': {
-                            "item": finished_order['item'],
-                            "total_price": finished_order['total_price'],
-                            "shipping_address": shipping_address,
-                            "order_date": finished_order['order_date'],
-                            "order_number": finished_order['id'],
-                        },
-                        'temp_order': None,
-                        'order_quantities': {},
-                        'total_price': 0.0,
-                        'order_placed': True,
-                        'user_orders': get_order_by_user_id(user_id)
-                    })
-                    st.rerun()
+        if not shipping_address.strip():
+            st.warning("Please provide a valid shipping address.")
         else:
-            st.warning("Please provide a shipping address.")
+            insufficient_stock = []
+            for order_item in temp_order_data['item']:
+                item_id = order_item['item_id']
+                requested_quantity = st.session_state.order_quantities.get(str(item_id), order_item['quantity'])
+                available_quantity = order_item['quantity']
+                if requested_quantity > available_quantity:
+                    insufficient_stock.append(
+                        f"{order_item['name']} (requested: {requested_quantity}, available: {available_quantity})")
+            if insufficient_stock:
+                st.warning(
+                    f"The following items have insufficient stock: {', '.join(insufficient_stock)}"
+                )
+            else:
+                close_order(temp_order_data['id'], shipping_address, user_id, token)
+                finished_order = get_order_by_id(temp_order_data['id'])
+                st.session_state.update({
+                    'order_summary': {
+                        "item": finished_order['item'],
+                        "total_price": finished_order['total_price'],
+                        "shipping_address": shipping_address,
+                        "order_date": finished_order['order_date'],
+                        "order_number": finished_order['id'],
+                    },
+                    'temp_order': None,
+                    'order_quantities': {},
+                    'total_price': 0.0,
+                    'order_placed': True,
+                    'user_orders': get_order_by_user_id(user_id, token)
+                })
+                st.rerun()
 
 
 try:
@@ -154,7 +151,11 @@ if not temp_order or temp_order.get('status_code') == 404:
     st.session_state.total_price = 0.0
 else:
     st.session_state['temp_order'] = temp_order
-    st.session_state['order_quantities'] = temp_order.get('item_quantities', {})
+    # st.session_state['order_quantities'] = temp_order.get('item_quantities', {})
+    st.session_state['order_quantities'] = {
+        str(item["item_id"]): item["quantity"]
+        for item in temp_order.get("item", [])
+    }
     st.session_state.total_price = temp_order.get('total_price', 0.0)
     display_pending_order(temp_order)
 

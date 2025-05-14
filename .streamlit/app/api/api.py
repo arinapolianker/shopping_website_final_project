@@ -136,13 +136,13 @@ def delete_favorite_item(user_id, item_id, token):
     response.raise_for_status()
 
 
-def create_order(user_id, token, shipping_address, item_quantities, total_price, status="TEMP"):
+def create_order(user_id, token, shipping_address, items, total_price, status="TEMP"):
     url = f"{BASE_URL}/order/"
     headers = {"Authorization": f"Bearer {token}"}
     payload = {
         "user_id": user_id,
         "shipping_address": shipping_address,
-        "item_quantities": item_quantities,
+        "items": items,
         "total_price": total_price,
         "status": status
     }
@@ -208,3 +208,15 @@ def delete_item_from_order(order_id, item_id, token):
     headers = {"Authorization": f"Bearer {token}"}
     response = requests.delete(url, headers=headers)
     response.raise_for_status()
+
+
+def get_answer(question, user_id, token):
+    url = f"{BASE_URL}/chat_gpt"
+    headers = {"Authorization": f"Bearer {token}"}
+    payload = {
+        "question": question,
+        "user_id": user_id
+    }
+    response = requests.post(url, json=payload, headers=headers)
+    response.raise_for_status()
+    return response.json()
